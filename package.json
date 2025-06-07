@@ -1,0 +1,119 @@
+{
+  "name": "hulla",
+  "version": "0.0.0",
+  "description": "CLI tooling for the @hulla ecosystem",
+  "author": {
+    "name": "Samuel Hulla",
+    "email": "hulla@hulla.dev",
+    "url": "https://hulla.dev"
+  },
+  "maintainers": [
+    "Samuel Hulla <hulla@hulla.dev>"
+  ],
+  "homepage": "https://hulla.dev/projects/cli",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hulladev/cli.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "bin": "./dist/bin.js",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "build": "bunchee -m"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "@hulla/args": "^0.0.0",
+    "@types/node": "^22.15.30",
+    "picocolors": "^1.1.1",
+    "zod": "^3.25.56"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.4",
+    "@eslint/js": "^9.28.0",
+    "bunchee": "^6.5.2",
+    "commitizen": "^4.3.1",
+    "cz-emoji": "1.3.2-canary.2",
+    "eslint": "^9.28.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.4.1",
+    "husky": "^9.1.7",
+    "prettier": "^3.5.3",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.33.1"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-emoji"
+    },
+    "cz-emoji": {
+      "skipScope": true,
+      "scopes": [
+        "cli",
+        "repo"
+      ],
+      "types": [
+        {
+          "emoji": "✅",
+          "code": ":white_check_mark: feat:",
+          "description": "a new functionality",
+          "name": "feat"
+        },
+        {
+          "emoji": "🐞",
+          "code": ":lady_beetle: fix:",
+          "description": "a bug fix",
+          "name": "fix"
+        },
+        {
+          "emoji": "🔧",
+          "code": ":wrench: update:",
+          "description": "a code change that neither fixes a bug nor adds a feature",
+          "name": "update"
+        },
+        {
+          "emoji": "📚",
+          "code": ":books: docs:",
+          "description": "documentations",
+          "name": "docs"
+        },
+        {
+          "emoji": "🧪",
+          "code": ":test_tube: tests:",
+          "description": "tests",
+          "name": "tests"
+        },
+        {
+          "emoji": "🪛",
+          "code": ":screwdriver: config:",
+          "description": "configuration files",
+          "name": "config"
+        },
+        {
+          "emoji": "🤖",
+          "code": ":robot: devops:",
+          "description": "ci/cd or other form of automation",
+          "name": "devops"
+        },
+        {
+          "emoji": "♻️",
+          "code": ":recycle: cleanup:",
+          "description": "code cleanup",
+          "name": "cleanup"
+        },
+        {
+          "emoji": "📦",
+          "code": ":package: release:",
+          "description": "new release bundle",
+          "name": "release"
+        }
+      ]
+    }
+  }
+}
