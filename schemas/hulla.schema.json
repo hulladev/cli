@@ -1,0 +1,33 @@
+{
+  "title": "Hulla Config Schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference"
+    },
+    "cli": {
+      "type": "object",
+      "properties": {
+        "scripts": {
+          "type": "object",
+          "properties": {
+            "add": { "type": "string" },
+            "addDev": { "type": "string" },
+            "uninstall": { "type": "string" },
+            "upgrade": { "type": "string" }
+          },
+          "required": ["add", "addDev", "uninstall", "upgrade"],
+          "additionalProperties": false
+        },
+        "package": { "type": "string" },
+        "cache": { "type": "boolean" },
+        "logs": { "type": "boolean" }
+      },
+      "required": ["scripts", "package"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["cli"],
+  "additionalProperties": false
+}
