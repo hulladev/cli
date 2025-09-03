@@ -1,5 +1,5 @@
-import { PackageManager } from "@/types.private"
-import type { HullaConfigSchema } from "schemas/hulla.schema"
+import type { PackageManager } from "@/types.private"
+import type { HullaConfigSchema } from "schemas/hulla.types"
 
 export function getConfigScripts(
   packageManager: PackageManager
@@ -7,29 +7,29 @@ export function getConfigScripts(
   switch (packageManager) {
     case "npm":
       return {
-        install: "npm install",
-        installDev: "npm install --save-dev",
+        add: "npm install",
+        addDev: "npm install --save-dev",
         uninstall: "npm uninstall",
         upgrade: "npm update",
       }
     case "pnpm":
       return {
-        install: "pnpm add",
-        installDev: "pnpm add -D",
+        add: "pnpm add",
+        addDev: "pnpm add -D",
         uninstall: "pnpm remove",
         upgrade: "pnpm upgrade",
       }
     case "yarn":
       return {
-        install: "yarn add",
-        installDev: "yarn add -D",
+        add: "yarn add",
+        addDev: "yarn add -D",
         uninstall: "yarn remove",
         upgrade: "yarn upgrade",
       }
     case "bun":
       return {
-        install: "bun add",
-        installDev: "bun add -D",
+        add: "bun add",
+        addDev: "bun add -D",
         uninstall: "bun remove",
         upgrade: "bun update",
       }

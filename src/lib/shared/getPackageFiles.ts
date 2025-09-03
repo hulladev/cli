@@ -1,4 +1,4 @@
-import { PackageManager } from "@/types.private"
+import type { PackageManager } from "@/types.private"
 import { existsSync } from "fs"
 import { readFile } from "fs/promises"
 import { join } from "path"
@@ -16,11 +16,20 @@ export async function getPackageJson(
   dir: string,
   path: string
 ): Promise<PackageJson | null> {
-  const packageJson = await readFile(join(dir, path), {
-    encoding: "utf-8",
-    flag: "r",
-  })
-  return JSON.parse(packageJson)
+  try {
+    const packageJson = await readFile(join(dir, path), {
+      encoding: "utf-8",
+      flag: "r",
+    })
+    return JSON.parse(packageJson)
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return null // File doesn't exist, return null as expected
+    }
+    throw new Error(
+      `Failed to read or parse package.json: ${error instanceof Error ? error.message : String(error)}`
+    )
+  }
 }
 
 export function getPackageManagerFromLockfile(
