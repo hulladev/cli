@@ -1,16 +1,13 @@
 #!/usr/bin/env node
 import { cli } from "@/cli"
-import { tcf } from "@hulla/control"
-import { version } from "@/handlers/flags/version.handler"
-import { help } from "@/handlers/flags/help.handler"
-import { install } from "@/handlers/commands/install.handler"
-import { executeHandlers } from "@/lib/executeHandlers"
 import { init, initHullaProject } from "@/handlers/commands/init.handler"
+import { install } from "@/handlers/commands/install.handler"
+import { help } from "@/handlers/flags/help.handler"
+import { version } from "@/handlers/flags/version.handler"
+import { executeHandlers } from "@/lib/shared/executeHandlers"
 import { log } from "@/prompts/log"
-import { ParserError } from "@hulla/args"
-import { intro } from "@/prompts/intro"
 import { outro } from "@/prompts/outro"
-import pc from "picocolors"
+import { ParserError } from "@hulla/args"
 
 const argv = process.argv
 
@@ -21,25 +18,28 @@ async function main() {
     const cfg = await initHullaProject(
       stdin.arguments.path?.value ?? process.cwd()
     )
+    if (cfg.isErr()) {
+      throw new Error(cfg.error.message)
+    }
     // For future maintainers, how this works:
     // 1. Open parser/cli.ts and add any new arguments / commands
     // 2. Define a handler for the new argument / command in hnd import it here
     // 3. executeSwitch is just a fancy switch statement that compares the detected keys based on a condition of
     //    the detected keys and executes the handler for the detected key
     // 4. Each handler returns a handler output which we then process here
-    const args = await executeHandlers(stdin.arguments, {
+    const args = await executeHandlers(stdin.arguments, cfg.value, {
       help,
       version,
       path: () => null, // handled above in initHullaProject,
     })
-    const commands = await executeHandlers(stdin.commands, {
+    const commands = await executeHandlers(stdin.commands, cfg.value, {
       install,
       init,
     })
     outro("good")
     process.exit(0)
   } catch (error) {
-    intro("Unfortunately we encountered the following error:")
+    log.error("Unfortunately we encountered the following error:")
     if (error instanceof ParserError) {
       log.error(error.message)
     } else {

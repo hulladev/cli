@@ -1,5 +1,5 @@
-import { z } from "zod"
 import { infiniteSequence } from "@hulla/args"
+import { z } from "zod"
 
 type Prefixed<T extends string> = `@hulla/${T}`
 

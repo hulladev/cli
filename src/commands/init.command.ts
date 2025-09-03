@@ -1,7 +1,7 @@
-import { command } from "@hulla/args"
-import { pathOption } from "@/arguments/options/path.option"
-import { helpFlag } from "@/arguments/flags/help.flag"
 import { cleanFlag } from "@/arguments/flags/clean.flag"
+import { helpFlag } from "@/arguments/flags/help.flag"
+import { pathOption } from "@/arguments/options/path.option"
+import { command } from "@hulla/args"
 
 export const init = command({
   name: "init",
