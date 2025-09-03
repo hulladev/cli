@@ -1,15 +1,25 @@
 // @ts-check
 
 import eslint from "@eslint/js"
-import tseslint from "typescript-eslint"
 import prettier from "eslint-plugin-prettier/recommended"
+import tseslint from "typescript-eslint"
 
 export default tseslint.config(
   eslint.configs.recommended,
   tseslint.configs.recommended,
   prettier,
   {
+    ignores: ["dist/**", "node_modules/**", ".hulla/**", ".changeset/**"],
+  },
+  {
     rules: {
+      "@typescript-eslint/consistent-type-imports": [
+        "error",
+        {
+          prefer: "type-imports",
+          disallowTypeAnnotations: false,
+        },
+      ],
       "@typescript-eslint/no-restricted-imports": [
         "error",
         {

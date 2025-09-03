@@ -24,7 +24,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "gen:schema": "pnpm json2ts -i schemas/hulla.schema.json -o schemas/hulla.schema.ts && echo '// To update this file, run pnpm gen:schema' >> schemas/hulla.schema.ts",
+    "gen:schema": "pnpm json2ts -i schemas/hulla.schema.json -o schemas/hulla.types.ts && echo '// To update this file, run pnpm gen:schema' >> schemas/hulla.types.ts",
     "build": "pnpm gen:schema && bunchee -m"
   },
   "dependencies": {
@@ -47,6 +47,7 @@
     "husky": "^9.1.7",
     "json-schema-to-typescript": "^15.0.4",
     "prettier": "^3.5.3",
+    "prettier-plugin-organize-imports": "^4.2.0",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.33.1"
