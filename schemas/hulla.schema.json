@@ -20,7 +20,7 @@
           "required": ["add", "addDev", "uninstall", "upgrade"],
           "additionalProperties": false
         },
-        "package": { "type": "string" },
+        "packageManager": { "type": "string" },
         "cache": { "type": "boolean" },
         "logs": { "type": "boolean" }
       },
