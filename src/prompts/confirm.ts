@@ -1,6 +1,7 @@
-import { confirm as cConfirm, ConfirmOptions } from "@clack/prompts"
-import { ExtendedPrompt } from "./types.prompts"
+import type { ConfirmOptions } from "@clack/prompts"
+import { confirm as cConfirm } from "@clack/prompts"
 import { handleCancel } from "./cancel"
+import type { ExtendedPrompt } from "./types.prompts"
 
 type ConfirmPrompt = ConfirmOptions & ExtendedPrompt
 

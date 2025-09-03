@@ -1,4 +1,4 @@
-import { isCancel, cancel } from "@clack/prompts"
+import { cancel, isCancel } from "@clack/prompts"
 
 export function defaultCancel<T extends Parameters<typeof isCancel>[0]>(
   params: T

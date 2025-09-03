@@ -1,6 +1,7 @@
-import { select as cSelect, SelectOptions } from "@clack/prompts"
-import { ExtendedPrompt } from "./types.prompts"
+import type { SelectOptions } from "@clack/prompts"
+import { select as cSelect } from "@clack/prompts"
 import { handleCancel } from "./cancel"
+import type { ExtendedPrompt } from "./types.prompts"
 
 type SelectPrompt<T> = SelectOptions<T> & ExtendedPrompt
 

@@ -1,3 +1,3 @@
 import pc from "picocolors"
 
-export const cliPrefix = `${pc.bold("[")}${pc.cyan("@hulla/cli")}${pc.bold("]")}`
+export const cliPrefix = `${pc.bold("[")}${pc.blue("@hulla/cli")}${pc.bold("]:")}`

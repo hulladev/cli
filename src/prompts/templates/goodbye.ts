@@ -1,5 +1,5 @@
-import { outro } from "../outro"
 import pc from "picocolors"
+import { outro } from "../outro"
 
 export function goodbye(message: string) {
   outro(
