@@ -24,11 +24,13 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "build": "bunchee -m"
+    "gen:schema": "pnpm json2ts -i schemas/hulla.schema.json -o schemas/hulla.schema.ts && echo '// To update this file, run pnpm gen:schema' >> schemas/hulla.schema.ts",
+    "build": "pnpm gen:schema && bunchee -m"
   },
   "dependencies": {
-    "@clack/prompts": "^0.11.0",
-    "@hulla/args": "^0.0.0",
+    "@clack/prompts": "1.0.0-alpha.4",
+    "@hulla/args": "^0.0.2",
+    "@hulla/control": "^0.0.3",
     "@types/node": "^22.15.30",
     "picocolors": "^1.1.1",
     "zod": "^3.25.56"
@@ -43,6 +45,7 @@
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.4.1",
     "husky": "^9.1.7",
+    "json-schema-to-typescript": "^15.0.4",
     "prettier": "^3.5.3",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
