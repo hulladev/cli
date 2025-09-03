@@ -1,24 +1,53 @@
 #!/usr/bin/env node
-
-import { cyan, yellow } from "picocolors"
+import { cli } from "@/cli"
+import { tcf } from "@hulla/control"
+import { version } from "@/handlers/flags/version.handler"
+import { help } from "@/handlers/flags/help.handler"
+import { install } from "@/handlers/commands/install.handler"
+import { executeHandlers } from "@/lib/executeHandlers"
+import { init, initHullaProject } from "@/handlers/commands/init.handler"
+import { log } from "@/prompts/log"
+import { ParserError } from "@hulla/args"
+import { intro } from "@/prompts/intro"
+import { outro } from "@/prompts/outro"
+import pc from "picocolors"
 
 const argv = process.argv
 
 async function main() {
-  const terminalWidth = process.stdout.columns || 80
-  const separator = "=".repeat(terminalWidth)
-  console.log(separator)
-  console.log()
-  console.log(`Hi, thank you for using ${cyan("hulla cli")}! ❤️\n\n`)
-  console.log(
-`This is a a pre-release version to reserve the npm package name.\n
-${yellow("If you're seeing this message even in production, please make sure you update to the latest version.\n")}`
-  )
-  console.log(
-`Or if you're using npx / bunx / pnpm dlx make sure you use the latest version, for example: ${yellow("`npx hulla@latest`")}`
-  )
-  console.log()
-  console.log(separator)
+  try {
+    console.log("") // empty line to give some space to std output
+    const stdin = cli.parse(argv)
+    const cfg = await initHullaProject(
+      stdin.arguments.path?.value ?? process.cwd()
+    )
+    // For future maintainers, how this works:
+    // 1. Open parser/cli.ts and add any new arguments / commands
+    // 2. Define a handler for the new argument / command in hnd import it here
+    // 3. executeSwitch is just a fancy switch statement that compares the detected keys based on a condition of
+    //    the detected keys and executes the handler for the detected key
+    // 4. Each handler returns a handler output which we then process here
+    const args = await executeHandlers(stdin.arguments, {
+      help,
+      version,
+      path: () => null, // handled above in initHullaProject,
+    })
+    const commands = await executeHandlers(stdin.commands, {
+      install,
+      init,
+    })
+    outro("good")
+    process.exit(0)
+  } catch (error) {
+    intro("Unfortunately we encountered the following error:")
+    if (error instanceof ParserError) {
+      log.error(error.message)
+    } else {
+      log.error((error as Error).message)
+    }
+    outro("outro")
+    process.exit(1)
+  }
 }
 
 main().catch(console.error)
