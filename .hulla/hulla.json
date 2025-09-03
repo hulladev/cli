@@ -1,0 +1,12 @@
+{
+  "cli": {
+    "scripts": {
+      "add": "bun add",
+      "addDev": "bun add -D",
+      "uninstall": "bun remove",
+      "upgrade": "bun update"
+    },
+    "packageManager": "bun"
+  },
+  "path": "/Users/samuel/Coding/hulla/cli/.hulla/hulla.json"
+}
