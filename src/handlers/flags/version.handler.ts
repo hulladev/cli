@@ -1,6 +1,6 @@
-import { Arg } from "@/cli"
-import { HandlerOutput } from "../types.handler"
-import { ok } from "@hulla/control"
+import type { Arg } from "@/cli"
+import type { ok } from "@hulla/control"
+import type { HandlerOutput } from "../types.handler"
 
 export function version(flag: Arg<"version">): HandlerOutput {
   return ok({

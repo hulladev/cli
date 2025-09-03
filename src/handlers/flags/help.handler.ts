@@ -1,6 +1,6 @@
-import { Arg } from "@/cli"
-import { HandlerOutput } from "../types.handler"
-import { ok } from "@hulla/control"
+import type { Arg } from "@/cli"
+import type { ok } from "@hulla/control"
+import type { HandlerOutput } from "../types.handler"
 
 export function help(flag: Arg<"help">): HandlerOutput {
   return ok({
@@ -9,4 +9,3 @@ export function help(flag: Arg<"help">): HandlerOutput {
     fn: "info",
   })
 }
-

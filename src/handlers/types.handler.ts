@@ -1,5 +1,5 @@
 import type { log } from "@/prompts/log"
-import { Err, Ok } from "@hulla/control"
+import type { Err, Ok } from "@hulla/control"
 
 export type HandlerOutput =
   | Ok<{
