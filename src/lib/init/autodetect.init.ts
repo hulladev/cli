@@ -11,7 +11,7 @@ import {
   getPackageJson,
   getPackageManagerFromLockfile,
 } from "../shared/getPackageFiles"
-import { loopSelectProperties } from "./scripts.init"
+import { loopSelectProperties } from "./editors.init"
 
 export const detectScriptsAndManager = async (
   packageJson: PackageJson,
@@ -54,22 +54,25 @@ export const detectScriptsAndManager = async (
 }
 
 export const getInitConfirmationAndPackageJson = async (
-  dir: string
+  dir: string,
+  skipConfirmation = false
 ): Promise<PackageJson | null> => {
-  await log.warn(`There's no .hulla project in ${dir}`)
-  const initConfirmed = await confirm({
-    message:
-      "Would you like to initialize a new hulla CLI project in this directory?",
-    initialValue: true,
-  })
+  if (!skipConfirmation) {
+    log.warn(`There's no .hulla project in ${dir}`)
+    const initConfirmed = await confirm({
+      message:
+        "Would you like to initialize a new hulla CLI project in this directory?",
+      initialValue: true,
+    })
 
-  if (!initConfirmed) {
-    return null
+    if (!initConfirmed) {
+      return null
+    }
   }
 
   const packageJson = await getPackageJson(dir, "package.json")
   if (!packageJson) {
-    await log.error("No package.json found in the directory")
+    log.error("No package.json found in the directory")
     return null
   }
 
