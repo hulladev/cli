@@ -22,4 +22,4 @@ export interface HullaConfigSchema {
     logs?: boolean;
   };
 }
-// To update this file, run pnpm gen:schema
+// To update this file, run bun gen:schema

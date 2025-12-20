@@ -1,11 +1,11 @@
 {
   "cli": {
     "scripts": {
-      "add": "pnpm add",
-      "addDev": "pnpm add -D",
-      "uninstall": "pnpm remove",
-      "upgrade": "pnpm upgrade"
+      "add": "bun add",
+      "addDev": "bun add -D",
+      "uninstall": "bun remove",
+      "upgrade": "bun update"
     },
-    "packageManager": "pnpm"
+    "packageManager": "bun"
   }
 }
