@@ -1,19 +1,23 @@
-import type { Command } from "@/cli"
+import { d } from "@/decorators"
 import {
   detectScriptsAndManager,
   getInitConfirmationAndPackageJson,
 } from "@/lib/init/autodetect.init"
 import { validateDirectoryAndGetConfig } from "@/lib/init/validators.init"
 import { writeConfig } from "@/lib/shared/writers"
+import { confirm } from "@/prompts/confirm"
 import { intro } from "@/prompts/intro"
 import { log } from "@/prompts/log"
-import type { HullaConfig, PackageManager } from "@/types.private"
+import { outro } from "@/prompts/outro"
+import type {
+  HandlerFunction,
+  HullaConfig,
+  PackageManager,
+} from "@/types.private"
 import type { Err, Ok } from "@hulla/control"
 import { err, ok } from "@hulla/control"
 import { join } from "node:path"
-import pc from "picocolors"
 import type { HullaConfigSchema } from "schemas/hulla.types"
-import type { HandlerOutput } from "../types.handler"
 
 export type InitUserAction = "editScripts" | "editPackageManager" | "use"
 
@@ -24,32 +28,57 @@ export type InitScriptManagerProps = {
   executePhase?: InitUserAction
 }
 
-export async function init(c: Command<"init">): Promise<HandlerOutput> {
-  const dir = c.arguments.path?.value ?? process.cwd()
-  intro(`🚀 Setting up a new ${pc.blue("hulla")} project in: ${pc.green(dir)}`)
+export const init: HandlerFunction<"commands", "init", HullaConfig> = async ({
+  result: commandResult,
+}) => {
+  const dir = commandResult.arguments.config?.value ?? process.cwd()
+  intro(
+    `🚀 Setting up a new ${d.highlight("hulla")} project in: ${d.path(dir)}`
+  )
 
-  const result = await initHullaProject(dir)
+  const result = await initHullaProject(dir, "overwrite")
   if (result.isErr()) {
     return err(result.error)
   }
 
   return ok({
-    type: "success",
-    message: "Hulla project initialized",
-    fn: "success",
+    data: result.value,
+    meta: { on: "commands", key: "init" },
+    message: `Project was sucessfully initialized 🎉`,
   })
 }
 
 export async function initHullaProject(
-  dir: string
+  dir: string,
+  mode: "check" | "overwrite" = "check"
 ): Promise<Ok<HullaConfig> | Err<Error>> {
   try {
     // 1. Validate directory and check existing config
     const existingConfig = await validateDirectoryAndGetConfig(dir)
-    if (existingConfig) return ok(existingConfig)
+    const hasExistingConfig = !!existingConfig
+    if (existingConfig) {
+      if (mode === "check") {
+        return ok(existingConfig)
+      }
+      log.warn(
+        `A ${d.path(existingConfig.path)} config already exists in this directory`
+      )
+      const overwriteConfirmed = await confirm({
+        message: `Would you like to overwrite it?`,
+        initialValue: false,
+      })
+      if (!overwriteConfirmed) {
+        outro(`${d.package("error")} Initialization cancelled ✖︎`)
+        process.exit(0)
+      }
+    }
 
     // 2. Get user confirmation and package.json
-    const packageJson = await getInitConfirmationAndPackageJson(dir)
+    // Skip confirmation if we're overwriting an existing config (already confirmed above)
+    const packageJson = await getInitConfirmationAndPackageJson(
+      dir,
+      hasExistingConfig
+    )
     if (!packageJson) {
       return err(new Error("Initialization cancelled or no package.json found"))
     }
@@ -69,9 +98,8 @@ export async function initHullaProject(
       path: configPath,
     }
 
-    log.info(`Writing config to ${pc.green(configPath)}`)
+    log.info(`Writing config to ${d.path(configPath)}`)
     await writeConfig(config, configPath)
-    log.success(`Config created ✅`)
 
     return ok(config)
   } catch (error) {

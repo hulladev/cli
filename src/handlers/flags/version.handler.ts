@@ -1,11 +1,10 @@
-import type { Arg } from "@/cli"
-import type { ok } from "@hulla/control"
-import type { HandlerOutput } from "../types.handler"
+import type { HandlerFunction } from "@/types.private"
+import { ok } from "@hulla/control"
 
-export function version(flag: Arg<"version">): HandlerOutput {
+export const version: HandlerFunction<"arguments", "version"> = () => {
   return ok({
-    type: "success",
+    data: "hulla v0.0.0-alpha.0",
+    meta: { on: "arguments", key: "version" },
     message: "hulla v0.0.0-alpha.0",
-    fn: "info",
   })
 }
