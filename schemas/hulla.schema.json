@@ -24,7 +24,7 @@
         "cache": { "type": "boolean" },
         "logs": { "type": "boolean" }
       },
-      "required": ["scripts", "package"],
+      "required": ["scripts"],
       "additionalProperties": false
     }
   },

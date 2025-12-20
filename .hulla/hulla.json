@@ -1,12 +1,11 @@
 {
   "cli": {
     "scripts": {
-      "add": "bun add",
-      "addDev": "bun add -D",
-      "uninstall": "bun remove",
-      "upgrade": "bun update"
+      "add": "pnpm add",
+      "addDev": "pnpm add -D",
+      "uninstall": "pnpm remove",
+      "upgrade": "pnpm upgrade"
     },
-    "packageManager": "bun"
-  },
-  "path": "/Users/samuel/Coding/hulla/cli/.hulla/hulla.json"
+    "packageManager": "pnpm"
+  }
 }
