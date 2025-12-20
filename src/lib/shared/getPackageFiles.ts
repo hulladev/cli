@@ -1,7 +1,5 @@
 import type { PackageManager } from "@/types.private"
-import { existsSync } from "fs"
-import { readFile } from "fs/promises"
-import { join } from "path"
+import { filesExist, readJsonFile, resolveAbsolute } from "./bunUtils"
 
 export type PackageJson = {
   name: string
@@ -16,36 +14,32 @@ export async function getPackageJson(
   dir: string,
   path: string
 ): Promise<PackageJson | null> {
-  try {
-    const packageJson = await readFile(join(dir, path), {
-      encoding: "utf-8",
-      flag: "r",
-    })
-    return JSON.parse(packageJson)
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return null // File doesn't exist, return null as expected
-    }
-    throw new Error(
-      `Failed to read or parse package.json: ${error instanceof Error ? error.message : String(error)}`
-    )
-  }
+  const fullPath = resolveAbsolute(dir, path)
+  return readJsonFile<PackageJson>(fullPath)
 }
 
-export function getPackageManagerFromLockfile(
+export async function getPackageManagerFromLockfile(
   dir: string
-): PackageManager | null {
-  if (existsSync(join(dir, "package-lock.json"))) {
-    return "npm"
+): Promise<PackageManager | null> {
+  // Define lockfile patterns with their package managers
+  const lockfiles = [
+    { file: "package-lock.json", pm: "npm" as const },
+    { file: "pnpm-lock.yaml", pm: "pnpm" as const },
+    { file: "yarn.lock", pm: "yarn" as const },
+    { file: "bun.lockb", pm: "bun" as const },
+    { file: "bun.lock", pm: "bun" as const },
+  ]
+
+  // Check all files in parallel
+  const paths = lockfiles.map(({ file }) => resolveAbsolute(dir, file))
+  const existsMap = await filesExist(paths)
+
+  // Return first match in priority order
+  for (let i = 0; i < paths.length; i++) {
+    if (existsMap.get(paths[i])) {
+      return lockfiles[i].pm
+    }
   }
-  if (existsSync(join(dir, "pnpm-lock.yaml"))) {
-    return "pnpm"
-  }
-  if (existsSync(join(dir, "yarn.lock"))) {
-    return "yarn"
-  }
-  if (existsSync(join(dir, "bun.lockb")) || existsSync(join(dir, "bun.lock"))) {
-    return "bun"
-  }
+
   return null
 }

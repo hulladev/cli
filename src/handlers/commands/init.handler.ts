@@ -4,6 +4,7 @@ import {
   getInitConfirmationAndPackageJson,
 } from "@/lib/init/autodetect.init"
 import { validateDirectoryAndGetConfig } from "@/lib/init/validators.init"
+import { resolveAbsolute } from "@/lib/shared/bunUtils"
 import { writeConfig } from "@/lib/shared/writers"
 import { confirm } from "@/prompts/confirm"
 import { intro } from "@/prompts/intro"
@@ -16,7 +17,6 @@ import type {
 } from "@/types.private"
 import type { Err, Ok } from "@hulla/control"
 import { err, ok } from "@hulla/control"
-import { join } from "node:path"
 import type { HullaConfigSchema } from "schemas/hulla.types"
 
 export type InitUserAction = "editScripts" | "editPackageManager" | "use"
@@ -89,7 +89,7 @@ export async function initHullaProject(
       dir
     )
 
-    const configPath = join(dir, ".hulla/hulla.json")
+    const configPath = resolveAbsolute(dir, ".hulla/hulla.json")
     const config: HullaConfig = {
       cli: {
         scripts,

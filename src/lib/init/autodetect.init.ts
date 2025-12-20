@@ -26,7 +26,7 @@ export const detectScriptsAndManager = async (
   // Attempt to auto-detect package manager and scripts
   const detectedPackageManager = packageJson.packageManager
     ? returnOnMatch(packageJson.packageManager, "pnpm", "npm", "yarn", "bun")
-    : getPackageManagerFromLockfile(dir)
+    : await getPackageManagerFromLockfile(dir)
 
   if (detectedPackageManager) {
     packageManager = detectedPackageManager

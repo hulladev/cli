@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 import { cli } from "@/cli"
 import { d } from "@/decorators"
 import { init, initHullaProject } from "@/handlers/commands/init.handler"
