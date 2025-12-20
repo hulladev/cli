@@ -12,8 +12,8 @@ importers:
         specifier: 1.0.0-alpha.4
         version: 1.0.0-alpha.4
       '@hulla/args':
-        specifier: ^0.0.2
-        version: 0.0.2(zod@3.25.56)
+        specifier: ^0.0.4
+        version: 0.0.4(zod@3.25.56)
       '@hulla/control':
         specifier: ^0.0.3
         version: 0.0.3
@@ -363,8 +363,8 @@ packages:
   '@fastify/deepmerge@1.3.0':
     resolution: {integrity: sha512-J8TOSBq3SoZbDhM9+R/u77hP93gz/rajSA+K2kGyijPpORPWUXHUpTaleoj+92As0S9uPRP7Oi8IqMf0u+ro6A==}
 
-  '@hulla/args@0.0.2':
-    resolution: {integrity: sha512-up2nX8Z+TACYVhJCavXm0nx6OQ1RJBIRQPzooEN6howlQuV7XWqeGHdeN1ZvVgA3VpupSNjZFKQB8k6fqOVdTw==}
+  '@hulla/args@0.0.4':
+    resolution: {integrity: sha512-/2lUznL992NIMAmKezj2e6ndJyguSlzJrkdCzI0S1ZowAlBdXeJ/mJXkjGL4ZWZ5TDVhnZpmn7xwSJc8Cw5Fvw==}
     peerDependencies:
       zod: '>=3.0.0'
 
@@ -2428,7 +2428,7 @@ snapshots:
 
   '@fastify/deepmerge@1.3.0': {}
 
-  '@hulla/args@0.0.2(zod@3.25.56)':
+  '@hulla/args@0.0.4(zod@3.25.56)':
     dependencies:
       zod: 3.25.56
 

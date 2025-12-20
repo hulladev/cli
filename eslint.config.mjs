@@ -29,6 +29,11 @@ export default tseslint.config(
               message:
                 "Direct imports from @clack/prompts are only allowed in src/prompts directory. Use the wrapper functions from src/prompts instead.",
             },
+            {
+              name: "picocolors",
+              message:
+                "Direct imports from picocolors are only allowed in src/decorators directory. Use the wrapper functions from src/decorators instead.",
+            },
           ],
         },
       ],
@@ -36,6 +41,12 @@ export default tseslint.config(
   },
   {
     files: ["src/prompts/**/*"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": "off",
+    },
+  },
+  {
+    files: ["src/decorators/**/*"],
     rules: {
       "@typescript-eslint/no-restricted-imports": "off",
     },
