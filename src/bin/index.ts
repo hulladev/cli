@@ -3,6 +3,7 @@ import { cli } from "@/cli"
 import { d } from "@/decorators"
 import { init, initHullaProject } from "@/handlers/commands/init.handler"
 import { install } from "@/handlers/commands/install.handler"
+import { ui } from "@/handlers/commands/ui.handler"
 import { help } from "@/handlers/flags/help.handler"
 import { version } from "@/handlers/flags/version.handler"
 import { config } from "@/handlers/options/config.handler"
@@ -11,6 +12,7 @@ import { resolve } from "@/lib/shared/resolve"
 import { log } from "@/prompts/log"
 import { outro } from "@/prompts/outro"
 import { ParserError } from "@hulla/args"
+import packageJson from "../../package.json"
 import { intro } from "../prompts/intro"
 
 const argv = process.argv
@@ -20,7 +22,7 @@ async function main() {
     console.log("") // empty line to give some space to std output
     const parserResult = cli.parse(argv)
     intro(
-      `${d.package()} ${d.highlight("[")}v0.0.0-alpha.0${d.highlight("]")} ${d.secondary(
+      `${d.package()} ${d.highlight("[")}v${packageJson.version}${d.highlight("]")} ${d.secondary(
         `[${parserResult.argv.join(" ")}]`
       )}`
     )
@@ -47,6 +49,7 @@ async function main() {
       {
         install,
         init,
+        ui,
       }
     )
     // Resolve just handles the final outro/success/error log logic

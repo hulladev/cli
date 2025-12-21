@@ -4,6 +4,7 @@ import { versionFlag } from "./arguments/flags/version.flag"
 import { configOption } from "./arguments/options/config.option"
 import { init } from "./commands/init.command"
 import { install } from "./commands/install.command"
+import { ui } from "./commands/ui.command"
 
 export const cli = parser({
   name: "hulla",
@@ -12,7 +13,7 @@ export const cli = parser({
     sharedDash: true,
   },
   arguments: [versionFlag, helpFlag, configOption],
-  commands: [install, init],
+  commands: [install, init, ui],
 })
 
 type Cli = Awaited<ReturnType<(typeof cli)["parse"]>>
