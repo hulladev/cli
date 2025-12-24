@@ -1,4 +1,4 @@
-import type { PackageManager } from "@/types.private"
+import type { PackageManager } from "@/types"
 import { filesExist, readJsonFile, resolveAbsolute } from "./bunUtils"
 
 export type PackageJson = {

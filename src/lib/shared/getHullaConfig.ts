@@ -1,4 +1,4 @@
-import type { HullaConfig } from "@/types.private"
+import type { HullaConfig } from "@/types"
 import type { HullaConfigSchema } from "schemas/hulla.types"
 import { readJsonFromPaths, resolveAbsolute } from "./bunUtils"
 

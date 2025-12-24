@@ -1,7 +1,7 @@
 import { confirm } from "@/prompts/confirm"
 import { log } from "@/prompts/log"
 import { cliPrefix } from "@/prompts/templates/cliPrefix"
-import type { PackageManager } from "@/types.private"
+import type { PackageManager } from "@/types"
 import { returnOnMatch } from "@/utils/strings"
 import pc from "picocolors"
 import type { HullaConfigSchema } from "schemas/hulla.types"

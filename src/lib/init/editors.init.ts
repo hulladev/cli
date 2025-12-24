@@ -1,7 +1,7 @@
 import type { InitScriptManagerProps } from "@/handlers/commands/init.handler"
 import { note } from "@/prompts/note"
 import { select } from "@/prompts/select"
-import type { PackageManager } from "@/types.private"
+import type { PackageManager } from "@/types"
 import pc from "picocolors"
 import type { HullaConfigSchema } from "schemas/hulla.types"
 import { PACKAGE_MANAGERS } from "../shared/constants"

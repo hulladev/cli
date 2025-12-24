@@ -14,7 +14,7 @@ import type {
   HandlerFunction,
   HullaConfig,
   PackageManager,
-} from "@/types.private"
+} from "@/types"
 import type { Err, Ok } from "@hulla/control"
 import { err, ok } from "@hulla/control"
 import type { HullaConfigSchema } from "schemas/hulla.types"

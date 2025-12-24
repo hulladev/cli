@@ -35,23 +35,30 @@ async function main() {
     // For future maintainers, how this works:
     // 1. Open parser/cli.ts and add any new arguments / commands
     // 2. Define a handler for the new argument / command and import it here
-    // 3. executeSwitch is just a fancy switch statement that executes the handler for the detected key
-    // 4. Each handler returns a handler output which we then process here
-    const args = await executeHandlers(parserResult, "arguments", cfg.value, {
-      help,
-      version,
-      config,
-    })
-    const commands = await executeHandlers(
+    // 3. executeSwitch is just a fancy and typesafe switch statement that executes the handler for the detected key
+    // 4. Each handler returns a handler processes input and can returns a Ok<T> or Err<E> value
+    const args = await executeHandlers({
+      result: parserResult,
+      on: "arguments",
       parserResult,
-      "commands",
-      cfg.value,
-      {
+      config: cfg.value,
+      handlers: {
+        help,
+        version,
+        config,
+      },
+    })
+    const commands = await executeHandlers({
+      result: parserResult,
+      on: "commands",
+      parserResult,
+      config: cfg.value,
+      handlers: {
         install,
         init,
         ui,
-      }
-    )
+      },
+    })
     // Resolve just handles the final outro/success/error log logic
     resolve({ args, commands })
     return process.exit(0)

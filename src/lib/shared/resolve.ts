@@ -1,7 +1,7 @@
 import { d } from "@/decorators"
 import { log } from "@/prompts/log"
 import { outro } from "@/prompts/outro"
-import type { HandlerOutput, ParserResult } from "@/types.private"
+import type { HandlerOutput, ParserResult } from "@/types"
 
 export function resolve({
   args,

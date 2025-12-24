@@ -1,5 +1,5 @@
 import { d } from "@/decorators"
-import type { HullaConfig } from "@/types.private"
+import type { HullaConfig } from "@/types"
 import { directoryExists } from "../shared/bunUtils"
 import { getHullaConfig } from "../shared/getHullaConfig"
 

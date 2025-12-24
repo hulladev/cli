@@ -1,4 +1,4 @@
-import type { HandlerFunction } from "@/types.private"
+import type { HandlerFunction } from "@/types"
 import { ok } from "@hulla/control"
 import packageJson from "../../../package.json"
 

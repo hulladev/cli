@@ -1,4 +1,4 @@
-import type { PackageManager } from "@/types.private"
+import type { PackageManager } from "@/types"
 import type { HullaConfigSchema } from "schemas/hulla.types"
 
 export function getConfigScripts(

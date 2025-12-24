@@ -1,4 +1,4 @@
-import type { HullaConfig } from "@/types.private"
+import type { HullaConfig } from "@/types"
 import { omit } from "@/utils/objects"
 import type { HullaConfigSchema } from "schemas/hulla.types"
 import { writeJsonFile } from "./bunUtils"
