@@ -1,5 +1,5 @@
-import type { HullaConfig } from "@/types"
-import type { HullaConfigSchema } from "schemas/hulla.types"
+import type { HullaConfig, RawHullaConfig } from "@/types"
+import { ConfigSchema } from "schemas/hulla.schema"
 import { readJsonFromPaths, resolveAbsolute } from "./bunUtils"
 
 export async function getHullaConfig(
@@ -14,12 +14,15 @@ export async function getHullaConfig(
   ]
 ): Promise<HullaConfig | null> {
   const fullPaths = paths.map((p) => resolveAbsolute(dir, p))
-  const result = await readJsonFromPaths<HullaConfigSchema>(fullPaths)
+  const result = await readJsonFromPaths<RawHullaConfig>(fullPaths)
 
   if (!result) return null
 
+  const config = ConfigSchema.parse(result.data)
+
   return {
-    ...result.data,
+    ...config,
     path: result.path,
+    rawConfig: result.data,
   }
 }

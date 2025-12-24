@@ -4,7 +4,8 @@ import { zodToJsonSchema } from "zod-to-json-schema"
 import { ConfigSchema } from "../schemas/hulla.schema"
 
 async function generateSchema() {
-  const jsonSchema = zodToJsonSchema(ConfigSchema, {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jsonSchema = zodToJsonSchema(ConfigSchema as any, {
     name: "Hulla Config Schema",
     nameStrategy: "title",
     target: "jsonSchema7",

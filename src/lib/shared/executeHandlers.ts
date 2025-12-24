@@ -18,6 +18,7 @@ type GenericSwitchMap<
     result: T[On][K]
     parserResult: ParserResult
     config: HullaConfig
+    rawConfig: HullaConfig["rawConfig"]
   }) => unknown | Promise<unknown>
 }
 
@@ -54,6 +55,7 @@ async function executeSwitchWithCondition<
           result: value,
           parserResult,
           config,
+          rawConfig: config.rawConfig,
         })
         resultMap.set(
           key,
@@ -143,6 +145,7 @@ export async function executeHandlers<
             ] as unknown as ParserResult[On][keyof ParserResult[On]],
             parserResult: result as ParserResult,
             config,
+            rawConfig: config.rawConfig,
           })
           resultMap.set(
             key,

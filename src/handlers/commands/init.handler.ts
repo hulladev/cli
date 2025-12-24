@@ -11,10 +11,15 @@ import { confirm } from "@/prompts/confirm"
 import { intro } from "@/prompts/intro"
 import { log } from "@/prompts/log"
 import { outro } from "@/prompts/outro"
-import type { HandlerFunction, HullaConfig, PackageManager } from "@/types"
+import type {
+  HandlerFunction,
+  HullaConfig,
+  PackageManager,
+  RawHullaConfig,
+} from "@/types"
 import type { Err, Ok } from "@hulla/control"
 import { err, ok } from "@hulla/control"
-import type { HullaConfigSchema } from "schemas/hulla.types"
+import { ConfigSchema, type HullaConfigSchema } from "schemas/hulla.schema"
 
 export type InitUserAction = "editScripts" | "editPackageManager" | "use"
 
@@ -84,12 +89,17 @@ export async function initHullaProject(
     const { scripts } = await detectScriptsAndManager(packageJson, dir)
 
     const configPath = resolveAbsolute(dir, ".hulla/hulla.json")
-    const config: HullaConfig = {
+    const rawConfig: RawHullaConfig = {
       $schema: getSchemaUrl(),
       cli: {
         scripts,
       },
+    }
+    const parsedConfig = ConfigSchema.parse(rawConfig)
+    const config: HullaConfig = {
+      ...parsedConfig,
       path: configPath,
+      rawConfig,
     }
 
     log.info(`Writing config to ${d.path(configPath)}`)

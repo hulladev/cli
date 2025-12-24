@@ -1,10 +1,13 @@
 import type { Err, Ok } from "@hulla/control"
-import type { HullaConfigSchema } from "schemas/hulla.types"
+import type { ConfigSchema, HullaConfigSchema } from "schemas/hulla.schema"
+import type { z } from "zod"
 import type { cli } from "./cli"
 
 export type PackageManager = "npm" | "pnpm" | "yarn" | "bun"
+export type RawHullaConfig = z.input<typeof ConfigSchema>
 export type HullaConfig = HullaConfigSchema & {
   path: string
+  rawConfig: RawHullaConfig
 }
 
 export type ParserResult = ReturnType<typeof cli.parse>
@@ -37,6 +40,7 @@ export type HandlerFunction<
   result: ParserResult[On][K]
   parserResult: ParserResult
   config: HullaConfig
+  rawConfig: RawHullaConfig
 }) => HandlerOutput<On, K, R> | Promise<HandlerOutput<On, K, R>>
 
 type SubCommandKeys<ParentCommand extends keyof ParserResult["commands"]> =
@@ -86,6 +90,13 @@ export type SubHandlerFunction<
     : never
   parserResult: ParserResult
   config: HullaConfig
+  rawConfig: RawHullaConfig
 }) =>
   | SubHandlerOutput<ParentCommand, SubCommand, R>
   | Promise<SubHandlerOutput<ParentCommand, SubCommand, R>>
+
+export type UIInitTaskState = {
+  tsConfigPath: string | null
+  dependencies: string[]
+  devDependencies: string[]
+}

@@ -1,4 +1,7 @@
+import { d } from "@/decorators"
 import { executeHandlers } from "@/lib/shared/executeHandlers"
+import { isUIConfigured } from "@/lib/ui/isUiConfigured"
+import { log } from "@/prompts/log"
 import type { HandlerFunction } from "@/types"
 import { ok } from "@hulla/control"
 import { add } from "./ui.add.handler"
@@ -11,8 +14,19 @@ export const ui: HandlerFunction<"commands", "ui"> = async ({
   result,
   parserResult,
   config: hullaConfig,
+  rawConfig,
 }) => {
-  console.log("reult", result)
+  if (!isUIConfigured(rawConfig) && !result.commands.init.detected) {
+    log.info(
+      `It looks like you don't have ${d.package("normal", " @hulla/ui ")} configured. Let's initialize it for you.`
+    )
+    await init({
+      result: result.commands.init,
+      parserResult,
+      config: hullaConfig,
+      rawConfig,
+    })
+  }
 
   await executeHandlers({
     result,
