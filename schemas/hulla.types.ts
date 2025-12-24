@@ -3,18 +3,7 @@
  * DO NOT MODIFY IT BY HAND. Instead, modify hulla.schema.ts and run bun gen:schema
  */
 export interface HullaConfigSchema {
-  $schema?: string
-  cli: {
-    scripts: {
-      add: string
-      addDev: string
-      uninstall: string
-      upgrade: string
-    }
-    cache?: boolean
-    cacheDir?: string
-    logs?: boolean
-  }
+  [k: string]: unknown
 }
 
 // To update this file, run bun gen:schema
