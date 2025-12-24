@@ -9,9 +9,9 @@ export const ConfigSchema = z.object({
       uninstall: z.string(),
       upgrade: z.string(),
     }),
-    cache: z.string().optional(),
+    cache: z.boolean().optional().default(true),
     cacheDir: z.string().optional().default("~/.cache/hulla"),
-    logs: z.boolean().optional(),
+    logs: z.boolean().optional().default(true),
   }),
 })
 

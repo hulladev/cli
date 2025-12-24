@@ -11,7 +11,7 @@ export interface HullaConfigSchema {
       uninstall: string
       upgrade: string
     }
-    cache?: string
+    cache?: boolean
     cacheDir?: string
     logs?: boolean
   }

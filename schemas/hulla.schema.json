@@ -32,14 +32,16 @@
           "additionalProperties": false
         },
         "cache": {
-          "type": "string"
+          "type": "boolean",
+          "default": true
         },
         "cacheDir": {
           "type": "string",
           "default": "~/.cache/hulla"
         },
         "logs": {
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [

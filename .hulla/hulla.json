@@ -1,4 +1,5 @@
 {
+  "$schema": "../schemas/hulla.schema.json",
   "cli": {
     "scripts": {
       "add": "bun add",
@@ -6,6 +7,8 @@
       "uninstall": "bun remove",
       "upgrade": "bun update"
     },
-    "packageManager": "bun"
+    "cache": "~/.cache/hulla",
+    "cacheDir": "~/.cache/hulla",
+    "logs": true
   }
 }
