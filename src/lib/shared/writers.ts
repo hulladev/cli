@@ -1,3 +1,5 @@
+import { d } from "@/decorators"
+import { log } from "@/prompts/log"
 import type { HullaConfig } from "@/types"
 import { omit } from "@/utils/objects"
 import { ConfigSchema } from "schemas/hulla.schema"
@@ -41,14 +43,15 @@ export async function writeConfig(
   config: HullaConfigSchema | HullaConfig,
   filePath: string
 ) {
-  // Remove path field if present
   const dataWithoutPath = omit(config as HullaConfig, ["path"])
-
-  // Validate with Zod schema
-  const validated = ConfigSchema.parse(dataWithoutPath)
-
-  // Remove default values before writing
-  const dataToWrite = removeDefaults(validated)
+  const validatedConfig = ConfigSchema.safeParse(dataWithoutPath)
+  if (!validatedConfig.success) {
+    log.error(
+      `${d.package("error")} Invalid config: ${validatedConfig.error.message}`
+    )
+    process.exit(1)
+  }
+  const dataToWrite = removeDefaults(validatedConfig.data)
 
   await writeJsonFile(filePath, dataToWrite, true)
 }
