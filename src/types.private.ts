@@ -13,7 +13,7 @@ type ParserCategory = Extract<keyof ParserResult, "arguments" | "commands">
 
 export type SwitchMap<On extends ParserCategory> = {
   [K in keyof ParserResult[On]]: (data: {
-    result: ParserResult[On][K]
+    value: ParserResult[On][K]
     parserResult: ParserResult
     config: HullaConfig
   }) => unknown
