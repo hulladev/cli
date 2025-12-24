@@ -6,9 +6,6 @@
       "addDev": "bun add -D",
       "uninstall": "bun remove",
       "upgrade": "bun update"
-    },
-    "cache": "~/.cache/hulla",
-    "cacheDir": "~/.cache/hulla",
-    "logs": true
+    }
   }
 }
