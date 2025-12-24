@@ -12,11 +12,7 @@ export type ParserResult = ReturnType<typeof cli.parse>
 type ParserCategory = Extract<keyof ParserResult, "arguments" | "commands">
 
 export type SwitchMap<On extends ParserCategory> = {
-  [K in keyof ParserResult[On]]: (data: {
-    value: ParserResult[On][K]
-    parserResult: ParserResult
-    config: HullaConfig
-  }) => unknown
+  [K in keyof ParserResult[On]]?: HandlerFunction<On, K>
 }
 
 export type HandlerOutput<
