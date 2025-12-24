@@ -1,9 +1,9 @@
+import { d } from "@/decorators"
 import { confirm } from "@/prompts/confirm"
 import { log } from "@/prompts/log"
 import { cliPrefix } from "@/prompts/templates/cliPrefix"
 import type { PackageManager } from "@/types"
 import { returnOnMatch } from "@/utils/strings"
-import pc from "picocolors"
 import type { HullaConfigSchema } from "schemas/hulla.types"
 import { getConfigScripts } from "../shared/getConfigScripts"
 import type { PackageJson } from "../shared/getPackageFiles"
@@ -35,7 +35,7 @@ export const detectScriptsAndManager = async (
 
   if (scripts && packageManager) {
     await log.info(
-      `${cliPrefix} Autodetected ${pc.green(packageManager)} as package manager`
+      `${cliPrefix} Autodetected ${d.success(packageManager)} as package manager`
     )
     return await loopSelectProperties({
       scripts,

@@ -1,3 +1,4 @@
+import { boldDecorator } from "./bold.decorator"
 import { errorDecorator } from "./error.decorator"
 import { highlightDecorator } from "./highlight.decorator"
 import { packageDecorator } from "./package.decorator"
@@ -12,4 +13,5 @@ export const d = {
   package: packageDecorator,
   secondary: secondaryDecorator,
   success: successDecorator,
+  bold: boldDecorator,
 }

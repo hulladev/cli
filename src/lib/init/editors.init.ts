@@ -1,8 +1,8 @@
+import { d } from "@/decorators"
 import type { InitScriptManagerProps } from "@/handlers/commands/init.handler"
 import { note } from "@/prompts/note"
 import { select } from "@/prompts/select"
 import type { PackageManager } from "@/types"
-import pc from "picocolors"
 import type { HullaConfigSchema } from "schemas/hulla.types"
 import { PACKAGE_MANAGERS } from "../shared/constants"
 import { getConfigScripts } from "../shared/getConfigScripts"
@@ -61,13 +61,13 @@ export const loopSelectProperties = async (
   scripts: HullaConfigSchema["cli"]["scripts"]
   packageManager: PackageManager | "other"
 }> => {
-  // Show current scripts if available
+  // If we autodetect package manager we cover, show the scripts
   if (props.scripts) {
     await note(
       JSON.stringify(props.scripts, null, 2)
         .replaceAll("{", "")
         .replaceAll("}", ""),
-      `${pc.bold(" We'll use the following scripts ")}`
+      `${d.bold(" We'll use the following scripts ")}`
     )
   }
 
