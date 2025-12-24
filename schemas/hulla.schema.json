@@ -1,10 +1,8 @@
 {
-  "title": "Hulla Config Schema",
   "type": "object",
   "properties": {
     "$schema": {
-      "type": "string",
-      "description": "JSON Schema reference"
+      "type": "string"
     },
     "cli": {
       "type": "object",
@@ -12,22 +10,49 @@
         "scripts": {
           "type": "object",
           "properties": {
-            "add": { "type": "string" },
-            "addDev": { "type": "string" },
-            "uninstall": { "type": "string" },
-            "upgrade": { "type": "string" }
+            "add": {
+              "type": "string"
+            },
+            "addDev": {
+              "type": "string"
+            },
+            "uninstall": {
+              "type": "string"
+            },
+            "upgrade": {
+              "type": "string"
+            }
           },
-          "required": ["add", "addDev", "uninstall", "upgrade"],
+          "required": [
+            "add",
+            "addDev",
+            "uninstall",
+            "upgrade"
+          ],
           "additionalProperties": false
         },
-        "packageManager": { "type": "string" },
-        "cache": { "type": "boolean" },
-        "logs": { "type": "boolean" }
+        "cache": {
+          "type": "string"
+        },
+        "cacheDir": {
+          "type": "string",
+          "default": "~/.cache/hulla"
+        },
+        "logs": {
+          "type": "boolean"
+        }
       },
-      "required": ["scripts"],
+      "required": [
+        "scripts"
+      ],
       "additionalProperties": false
     }
   },
-  "required": ["cli"],
-  "additionalProperties": false
+  "required": [
+    "cli"
+  ],
+  "additionalProperties": false,
+  "title": "Hulla Config Schema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Configuration schema for Hulla CLI tool"
 }

@@ -1,5 +1,4 @@
 import { z } from "zod"
-import type { HullaConfigSchema } from "./hulla.types"
 
 export const ConfigSchema = z.object({
   $schema: z.string().optional(),
@@ -10,8 +9,10 @@ export const ConfigSchema = z.object({
       uninstall: z.string(),
       upgrade: z.string(),
     }),
-    packageManager: z.string().optional(),
-    cache: z.boolean().optional(),
+    cache: z.string().optional(),
+    cacheDir: z.string().optional().default("~/.cache/hulla"),
     logs: z.boolean().optional(),
   }),
-}) satisfies z.ZodType<HullaConfigSchema>
+})
+
+export type HullaConfigSchema = z.infer<typeof ConfigSchema>

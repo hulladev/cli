@@ -25,7 +25,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "gen:schema": "bun json2ts -i schemas/hulla.schema.json -o schemas/hulla.types.ts && echo '// To update this file, run bun gen:schema' >> schemas/hulla.types.ts",
+    "gen:schema": "bun scripts/generate-schema.ts",
     "build": "bun run gen:schema && bun build --compile ./src/bin/index.ts --outfile ./dist/hulla",
     "build:targets": "bun run gen:schema && bun build --compile --target=bun-linux-x64 ./src/bin/index.ts --outfile ./dist/hulla-linux && bun build --compile --target=bun-darwin-arm64 ./src/bin/index.ts --outfile ./dist/hulla-macos-arm64 && bun build --compile --target=bun-windows-x64 ./src/bin/index.ts --outfile ./dist/hulla-windows.exe"
   },
@@ -52,7 +52,8 @@
     "prettier-plugin-organize-imports": "^4.2.0",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.33.1"
+    "typescript-eslint": "^8.33.1",
+    "zod-to-json-schema": "^3.25.0"
   },
   "config": {
     "commitizen": {
