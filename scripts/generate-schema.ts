@@ -65,6 +65,23 @@ export interface`
   await $`bun prettier --write ${typesPath}`.quiet()
 
   console.log(`✓ Generated ${typesPath}`)
+
+  // Update .hulla/hulla.json to use local schema for testing
+  const configPath = join(process.cwd(), ".hulla", "hulla.json")
+  const configFile = Bun.file(configPath)
+  if (await configFile.exists()) {
+    const config = (await configFile.json()) as {
+      $schema?: string
+      cli: unknown
+    }
+    // Reconstruct with $schema first
+    const updatedConfig: typeof config = {
+      $schema: "../schemas/hulla.schema.json",
+      cli: config.cli,
+    }
+    await Bun.write(configPath, JSON.stringify(updatedConfig, null, 2))
+    console.log(`✓ Updated ${configPath} to use local schema`)
+  }
 }
 
 generateSchema()

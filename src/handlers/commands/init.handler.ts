@@ -5,16 +5,13 @@ import {
 } from "@/lib/init/autodetect.init"
 import { validateDirectoryAndGetConfig } from "@/lib/init/validators.init"
 import { resolveAbsolute } from "@/lib/shared/bunUtils"
+import { getSchemaUrl } from "@/lib/shared/constants"
 import { writeConfig } from "@/lib/shared/writers"
 import { confirm } from "@/prompts/confirm"
 import { intro } from "@/prompts/intro"
 import { log } from "@/prompts/log"
 import { outro } from "@/prompts/outro"
-import type {
-  HandlerFunction,
-  HullaConfig,
-  PackageManager,
-} from "@/types"
+import type { HandlerFunction, HullaConfig, PackageManager } from "@/types"
 import type { Err, Ok } from "@hulla/control"
 import { err, ok } from "@hulla/control"
 import type { HullaConfigSchema } from "schemas/hulla.types"
@@ -83,17 +80,14 @@ export async function initHullaProject(
       return err(new Error("Initialization cancelled or no package.json found"))
     }
 
-    // 3. Detect and configure scripts and package manager
-    const { scripts, packageManager } = await detectScriptsAndManager(
-      packageJson,
-      dir
-    )
+    // 3. Detect and configure scripts
+    const { scripts } = await detectScriptsAndManager(packageJson, dir)
 
     const configPath = resolveAbsolute(dir, ".hulla/hulla.json")
     const config: HullaConfig = {
+      $schema: getSchemaUrl(),
       cli: {
         scripts,
-        packageManager,
       },
       path: configPath,
     }
