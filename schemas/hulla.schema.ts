@@ -1,3 +1,5 @@
+import { homedir } from "os"
+import { join } from "path"
 import { z } from "zod"
 
 export const cliSchema = z.object({
@@ -8,11 +10,11 @@ export const cliSchema = z.object({
     upgrade: z.string(),
   }),
   cache: z.boolean().optional().default(true),
-  cacheDir: z.string().optional().default("~/.cache/hulla"),
+  cacheDir: z.string().optional().default(join(homedir(), ".cache/hulla")),
   logs: z.boolean().optional().default(true),
 })
 
-const defaultUiConfig = {
+export const defaultUiConfig = {
   libs: ["https://github.com/hulladev/ui/tree/master/generated"],
 }
 
