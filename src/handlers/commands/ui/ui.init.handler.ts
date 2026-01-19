@@ -1,3 +1,4 @@
+import { store } from "@/lib/store"
 import { createUiInstallTask } from "@/lib/ui/tasks/ui.install.task"
 import { createUiTsconfigTask } from "@/lib/ui/tasks/ui.tsconfig.task"
 import { tasks } from "@/prompts/tasks"
@@ -11,10 +12,14 @@ export const init: SubHandlerFunction<"ui", "init"> = async ({ config }) => {
     devDependencies: [],
   }
 
-  const installTask = createUiInstallTask(config, state)
-  const tsConfigTask = createUiTsconfigTask(state)
+  const initStore = store<UIInitTaskState>(state)
+
+  const installTask = createUiInstallTask(config)
+  const tsConfigTask = createUiTsconfigTask(initStore)
 
   await tasks([installTask, tsConfigTask])
+
+  console.log(initStore.getState())
 
   return ok({
     data: null,

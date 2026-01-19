@@ -1,4 +1,5 @@
 import { getTsConfigPath } from "@/lib/shared/getTsConfigPath"
+import type { Store } from "@/lib/store"
 import { log } from "@/prompts/log"
 import { select } from "@/prompts/select"
 import type { Task } from "@/prompts/tasks"
@@ -6,9 +7,9 @@ import { text } from "@/prompts/text"
 import type { UIInitTaskState } from "@/types"
 import z from "zod"
 
-export function createUiTsconfigTask(state: UIInitTaskState): Task {
+export function createUiTsconfigTask(stateStore: Store<UIInitTaskState>): Task {
   const tsConfig: Task = {
-    title: "Detecting tsconfig.json path",
+    title: "Selecting tsconfig.json path",
     task: async () => {
       const tsConfigPaths = await getTsConfigPath(process.cwd())
       let tsConfigPath = await select<string>({
@@ -62,8 +63,7 @@ export function createUiTsconfigTask(state: UIInitTaskState): Task {
         }
         tsConfigPath = await requestTsConfigPath()
       }
-      // Store the result in shared state
-      state.tsConfigPath = tsConfigPath
+      stateStore.setState({ tsConfigPath })
     },
   }
   return tsConfig

@@ -8,6 +8,7 @@
         "@clack/prompts": "1.0.0-alpha.4",
         "@hulla/args": "^0.0.4",
         "@hulla/control": "^0.0.3",
+        "@hulla/gittar": "^0.0.1",
         "@hulla/style": "^0.2.1",
         "@types/node": "^22.15.30",
         "picocolors": "^1.1.1",
@@ -161,6 +162,8 @@
     "@hulla/args": ["@hulla/args@0.0.4", "", { "peerDependencies": { "zod": "3.25.56" } }, "sha512-/2lUznL992NIMAmKezj2e6ndJyguSlzJrkdCzI0S1ZowAlBdXeJ/mJXkjGL4ZWZ5TDVhnZpmn7xwSJc8Cw5Fvw=="],
 
     "@hulla/control": ["@hulla/control@0.0.3", "", {}, "sha512-63McqzBte48N223OV7CZAQccoyk/9TGbIeal242gay5Sb+JP/SQIpjSxLY3RX0mZYKODZ2oApWUzZhtXiRcu1Q=="],
+
+    "@hulla/gittar": ["@hulla/gittar@0.0.1", "", {}, "sha512-V7jhpnd7IiJlowNgdudsC0+Bq7sZAcjhjgq2YlX8tTzzR93ecRFpN8Iybh3UhCty9x9jO62db0Fve49uQBnUIQ=="],
 
     "@hulla/style": ["@hulla/style@0.2.1", "", {}, "sha512-a4KiOW3j/4j8yYbFevDnrKOVpO7/4bcPA8G7BmjqpYz+mZsMcCDzzdRiQw19bdkwrpSaP8zawi/2Ii/D2jNxOw=="],
 
