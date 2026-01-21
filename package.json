@@ -33,7 +33,7 @@
     "@clack/prompts": "1.0.0-alpha.4",
     "@hulla/args": "^0.0.4",
     "@hulla/control": "^0.0.3",
-    "@hulla/gittar": "^0.0.1",
+    "@hulla/gittar": "^0.0.4",
     "@hulla/style": "^0.2.1",
     "@types/node": "^22.15.30",
     "picocolors": "^1.1.1",

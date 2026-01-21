@@ -11,12 +11,12 @@ export function createUiInstallTask(config: HullaConfig): Task {
 
       const libs = await Promise.all(
         libUrls.map(async (url) => {
-          const lib = await gittar(url)
+          const lib = await gittar({ url, update: "commit" })
           return lib
         })
       )
 
-      console.log(libs)
+      console.log("xx--->", libs)
 
       const { add } = config.cli.scripts
       const [command, ...args] = add.split(" ")
