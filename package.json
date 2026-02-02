@@ -30,7 +30,7 @@
     "build:targets": "bun run gen:schema && bun build --compile --target=bun-linux-x64 ./src/bin/index.ts --outfile ./dist/hulla-linux && bun build --compile --target=bun-darwin-arm64 ./src/bin/index.ts --outfile ./dist/hulla-macos-arm64 && bun build --compile --target=bun-windows-x64 ./src/bin/index.ts --outfile ./dist/hulla-windows.exe"
   },
   "dependencies": {
-    "@clack/prompts": "1.0.0-alpha.4",
+    "@clack/prompts": "^1.0.0",
     "@hulla/args": "^0.0.4",
     "@hulla/control": "^0.0.3",
     "@hulla/gittar": "^0.0.4",
@@ -42,6 +42,7 @@
   "devDependencies": {
     "@changesets/cli": "^2.29.4",
     "@eslint/js": "^9.28.0",
+    "@hulla/ui": "^0.0.0",
     "@types/bun": "latest",
     "commitizen": "^4.3.1",
     "cz-emoji": "1.3.2-canary.2",

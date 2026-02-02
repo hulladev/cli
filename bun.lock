@@ -5,7 +5,7 @@
     "": {
       "name": "hulla",
       "dependencies": {
-        "@clack/prompts": "1.0.0-alpha.4",
+        "@clack/prompts": "^1.0.0",
         "@hulla/args": "^0.0.4",
         "@hulla/control": "^0.0.3",
         "@hulla/gittar": "^0.0.4",
@@ -17,6 +17,7 @@
       "devDependencies": {
         "@changesets/cli": "^2.29.4",
         "@eslint/js": "^9.28.0",
+        "@hulla/ui": "^0.0.0",
         "@types/bun": "latest",
         "commitizen": "^4.3.1",
         "cz-emoji": "1.3.2-canary.2",
@@ -77,9 +78,9 @@
 
     "@changesets/write": ["@changesets/write@0.4.0", "", { "dependencies": { "@changesets/types": "6.1.0", "fs-extra": "7.0.1", "human-id": "4.1.1", "prettier": "2.8.8" } }, "sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q=="],
 
-    "@clack/core": ["@clack/core@1.0.0-alpha.4", "", { "dependencies": { "picocolors": "1.1.1", "sisteransi": "1.0.5" } }, "sha512-VCtU+vjyKPMSakVrB9q1bOnXN7QW/w4+YQDQCOF59GrzydW+169i0fVx/qzRRXJgt8KGj/pZZ/JxXroFZIDByg=="],
+    "@clack/core": ["@clack/core@1.0.0", "", { "dependencies": { "picocolors": "^1.0.0", "sisteransi": "^1.0.5" } }, "sha512-Orf9Ltr5NeiEuVJS8Rk2XTw3IxNC2Bic3ash7GgYeA8LJ/zmSNpSQ/m5UAhe03lA6KFgklzZ5KTHs4OAMA/SAQ=="],
 
-    "@clack/prompts": ["@clack/prompts@1.0.0-alpha.4", "", { "dependencies": { "@clack/core": "1.0.0-alpha.4", "picocolors": "1.1.1", "sisteransi": "1.0.5" } }, "sha512-KnmtDF2xQGoI5AlBme9akHtvCRV0RKAARUXHBQO2tMwnY8B08/4zPWigT7uLK25UPrMCEqnyQPkKRjNdhPbf8g=="],
+    "@clack/prompts": ["@clack/prompts@1.0.0", "", { "dependencies": { "@clack/core": "1.0.0", "picocolors": "^1.0.0", "sisteransi": "^1.0.5" } }, "sha512-rWPXg9UaCFqErJVQ+MecOaWsozjaxol4yjnmYcGNipAWzdaWa2x+VJmKfGq7L0APwBohQOYdHC+9RO4qRXej+A=="],
 
     "@commitlint/config-validator": ["@commitlint/config-validator@19.8.1", "", { "dependencies": { "@commitlint/types": "19.8.1", "ajv": "8.17.1" } }, "sha512-0jvJ4u+eqGPBIzzSdqKNX1rvdbSU1lPNYlfQQRIFnBgLy26BtC0cFnr7c/AyuzExMxWsMOte6MkTi9I3SQ3iGQ=="],
 
@@ -166,6 +167,8 @@
     "@hulla/gittar": ["@hulla/gittar@0.0.4", "", {}, "sha512-mtY22SN62bAsaF9Iq87+jiSo9NXUOgq5xPMJmLhw1xfGHCkwdsFoC1vxwoDaLYY0BW5P+SKk66v0ZaUeXjS+Mw=="],
 
     "@hulla/style": ["@hulla/style@0.2.1", "", {}, "sha512-a4KiOW3j/4j8yYbFevDnrKOVpO7/4bcPA8G7BmjqpYz+mZsMcCDzzdRiQw19bdkwrpSaP8zawi/2Ii/D2jNxOw=="],
+
+    "@hulla/ui": ["@hulla/ui@0.0.0", "", { "dependencies": { "@hulla/args": "^0.0.2", "typescript": "^5.9.2" }, "bin": { "uigen": "dist/bin/uigen.js" } }, "sha512-WUizJW7ZX0PbiuMmaslBW+Wp9AZCnC8Dr9pqMGUOvT7Fa8UKfVrkRTETBTYf5VAXb/iAF3RcKfw6rOoRN7+exA=="],
 
     "@humanfs/core": ["@humanfs/core@0.19.1", "", {}, "sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA=="],
 
@@ -756,6 +759,10 @@
     "@commitlint/types/chalk": ["chalk@5.4.1", "", {}, "sha512-zgVZuo2WcZgfUEmsn6eO3kINexW8RAE4maiQ8QNs8CtpPCSyMiYsULR3HQYkm3w8FIA3SberyMJMSldGsW+U3w=="],
 
     "@eslint-community/eslint-utils/eslint-visitor-keys": ["eslint-visitor-keys@3.4.3", "", {}, "sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag=="],
+
+    "@hulla/ui/@hulla/args": ["@hulla/args@0.0.2", "", { "peerDependencies": { "zod": ">=3.0.0" } }, "sha512-up2nX8Z+TACYVhJCavXm0nx6OQ1RJBIRQPzooEN6howlQuV7XWqeGHdeN1ZvVgA3VpupSNjZFKQB8k6fqOVdTw=="],
+
+    "@hulla/ui/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@humanfs/node/@humanwhocodes/retry": ["@humanwhocodes/retry@0.3.1", "", {}, "sha512-JBxkERygn7Bv/GbN5Rv8Ul6LVknS+5Bp6RgDC/O8gEBU/yeH5Ui5C/OlWrTb6qct7LjjfT6Re2NxB0ln0yYybA=="],
 
