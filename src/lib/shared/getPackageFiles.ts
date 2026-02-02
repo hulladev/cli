@@ -8,6 +8,7 @@ export type PackageJson = {
   dependencies?: Record<string, string>
   devDependencies?: Record<string, string>
   packageManager?: string
+  workspaces?: string[] | { packages: string[] }
 }
 
 export async function getPackageJson(
