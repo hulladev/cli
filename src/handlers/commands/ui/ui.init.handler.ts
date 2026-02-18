@@ -4,10 +4,8 @@ import type { SubHandlerFunction } from "@/types"
 import { ok } from "@hulla/control"
 
 export const init: SubHandlerFunction<"ui", "init"> = async ({ config }) => {
-  const installTask = await createUiInstallTask(config)
-  const tsConfigTask = await createUiTsconfigTask()
-
-  // await tasks([installTask, tsConfigTask])
+  const { selectedFrameworks } = await createUiInstallTask(config)
+  await createUiTsconfigTask({ selectedFrameworks })
 
   return ok({
     data: null,

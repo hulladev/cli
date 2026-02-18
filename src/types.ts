@@ -100,3 +100,15 @@ export type UIInitTaskState = {
   dependencies: string[]
   devDependencies: string[]
 }
+
+export type UISelectedFramework = {
+  name: string
+  templateTsconfigPath: string
+}
+
+export type TsconfigPatchPlan = {
+  targetPath: string
+  beforeText: string
+  afterText: string
+  mode: "create" | "update"
+}

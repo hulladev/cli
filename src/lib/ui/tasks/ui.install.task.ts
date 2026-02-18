@@ -8,7 +8,7 @@ import { confirm } from "@/prompts/confirm"
 import { log } from "@/prompts/log"
 import { multiselect } from "@/prompts/multiselect"
 import { spinner } from "@/prompts/spinner"
-import type { HullaConfig } from "@/types"
+import type { HullaConfig, UISelectedFramework } from "@/types"
 import { entries, keys, values } from "@/utils/objects"
 import gittar from "@hulla/gittar"
 import type { UILibrary } from "@hulla/ui"
@@ -16,7 +16,9 @@ import { join } from "path"
 import { cwd } from "process"
 import { defaultUiConfig, type UICacheItem } from "schemas/hulla.schema"
 
-export async function createUiInstallTask(config: HullaConfig) {
+export async function createUiInstallTask(
+  config: HullaConfig
+): Promise<{ selectedFrameworks: UISelectedFramework[] }> {
   const libUrls = config.ui?.libs ?? defaultUiConfig.libs
 
   const s = spinner()
@@ -138,6 +140,8 @@ export async function createUiInstallTask(config: HullaConfig) {
     )
   )
 
+  const selectedFrameworks = extractSelectedFrameworks(cacheItems)
+
   // Collect dependencies from all selected framework package.json files
   const depsMap = new Map<string, string>()
   const devDepsMap = new Map<string, string>()
@@ -189,7 +193,7 @@ export async function createUiInstallTask(config: HullaConfig) {
 
   if (!hasAnythingToInstall) {
     log.info("All required dependencies are already installed")
-    return
+    return { selectedFrameworks }
   }
 
   // Build box content showing full dependency overview
@@ -226,7 +230,7 @@ export async function createUiInstallTask(config: HullaConfig) {
     log.warn(
       "Make sure to install the dependencies manually, otherwise the UI library may not work properly"
     )
-    return
+    return { selectedFrameworks }
   }
 
   // Log skipped dependencies after confirmation
@@ -271,6 +275,8 @@ export async function createUiInstallTask(config: HullaConfig) {
     }
     s.stop(`Dev dependencies installed successfully`)
   }
+
+  return { selectedFrameworks }
 }
 
 async function readFrameworkPackageJson(
@@ -301,4 +307,25 @@ function filterAndFormatDeps(
     toInstall.push(version === "*" ? name : `${name}@${version}`)
   }
   return { toInstall, skipped }
+}
+
+function extractSelectedFrameworks(
+  cacheItems: UICacheItem[]
+): UISelectedFramework[] {
+  const frameworks = cacheItems.flatMap((item) =>
+    entries(item.frameworks).map(([name, frameworkPath]) => ({
+      name,
+      templateTsconfigPath: join(frameworkPath, "tsconfig.json"),
+    }))
+  )
+
+  const deduped = new Map<string, UISelectedFramework>()
+  for (const framework of frameworks) {
+    const key = `${framework.name.toLowerCase()}:${framework.templateTsconfigPath}`
+    if (!deduped.has(key)) {
+      deduped.set(key, framework)
+    }
+  }
+
+  return [...deduped.values()]
 }
