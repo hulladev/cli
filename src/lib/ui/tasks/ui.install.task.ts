@@ -177,10 +177,8 @@ export async function createUiInstallTask(config: HullaConfig) {
   ])
 
   // Filter out already installed dependencies
-  const { toInstall: depsToInstall, skipped: skippedDeps } = filterAndFormatDeps(
-    depsMap,
-    installedDeps
-  )
+  const { toInstall: depsToInstall, skipped: skippedDeps } =
+    filterAndFormatDeps(depsMap, installedDeps)
   const { toInstall: devDepsToInstall, skipped: skippedDevDeps } =
     filterAndFormatDeps(devDepsMap, installedDeps)
 

@@ -1,10 +1,11 @@
 import { createUiInstallTask } from "@/lib/ui/tasks/ui.install.task"
+import { createUiTsconfigTask } from "@/lib/ui/tasks/ui.tsconfig.task"
 import type { SubHandlerFunction } from "@/types"
 import { ok } from "@hulla/control"
 
 export const init: SubHandlerFunction<"ui", "init"> = async ({ config }) => {
   const installTask = await createUiInstallTask(config)
-  // const tsConfigTask = createUiTsconfigTask(initStore)
+  const tsConfigTask = await createUiTsconfigTask()
 
   // await tasks([installTask, tsConfigTask])
 
