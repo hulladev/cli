@@ -1,7 +1,11 @@
 #!/usr/bin/env bun
 import { cli } from "@/cli"
 import { d } from "@/decorators"
-import { init, initHullaProject } from "@/handlers/commands/init.handler"
+import {
+  getProjectDirFromConfigOption,
+  init,
+  initHullaProject,
+} from "@/handlers/commands/init.handler"
 import { install } from "@/handlers/commands/install.handler"
 import { ui } from "@/handlers/commands/ui/ui.handler"
 import { help } from "@/handlers/flags/help.handler"
@@ -26,8 +30,11 @@ async function main() {
         `[${parserResult.argv.join(" ")}]`
       )}`
     )
+    const configPath = parserResult.arguments.config?.value
     const cfg = await initHullaProject(
-      parserResult.arguments.config?.value ?? process.cwd()
+      getProjectDirFromConfigOption(configPath),
+      "check",
+      configPath
     )
     if (cfg.isErr()) {
       throw new Error(cfg.error.message)

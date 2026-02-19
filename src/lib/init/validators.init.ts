@@ -4,7 +4,8 @@ import { directoryExists } from "../shared/bunUtils"
 import { getHullaConfig } from "../shared/getHullaConfig"
 
 export const validateDirectoryAndGetConfig = async (
-  dir: string
+  dir: string,
+  configPath?: string
 ): Promise<HullaConfig | null> => {
   if (!(await directoryExists(dir))) {
     throw new Error(
@@ -12,9 +13,18 @@ export const validateDirectoryAndGetConfig = async (
     )
   }
 
-  const existingProject = await getHullaConfig(dir)
-  if (existingProject) {
-    return existingProject
+  try {
+    const existingProject = await getHullaConfig(dir, configPath)
+    if (existingProject) {
+      return existingProject
+    }
+  } catch (error) {
+    // With explicit --config we should fail fast.
+    if (configPath) {
+      throw error
+    }
+    // For default discovery, treat load/parse failure as "no config"
+    // so the init flow can recover the project interactively.
   }
 
   return null

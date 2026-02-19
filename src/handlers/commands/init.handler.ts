@@ -19,6 +19,7 @@ import type {
 } from "@/types"
 import type { Err, Ok } from "@hulla/control"
 import { err, ok } from "@hulla/control"
+import { dirname } from "node:path"
 import { ConfigSchema, type HullaConfigSchema } from "schemas/hulla.schema"
 
 export type InitUserAction = "editScripts" | "editPackageManager" | "use"
@@ -33,12 +34,13 @@ export type InitScriptManagerProps = {
 export const init: HandlerFunction<"commands", "init", HullaConfig> = async ({
   result: commandResult,
 }) => {
-  const dir = commandResult.arguments.config?.value ?? process.cwd()
+  const configPath = commandResult.arguments.config?.value
+  const dir = getProjectDirFromConfigOption(configPath)
   intro(
     `🚀 Setting up a new ${d.highlight("hulla")} project in: ${d.path(dir)}`
   )
 
-  const result = await initHullaProject(dir, "overwrite")
+  const result = await initHullaProject(dir, "overwrite", configPath)
   if (result.isErr()) {
     return err(result.error)
   }
@@ -52,11 +54,12 @@ export const init: HandlerFunction<"commands", "init", HullaConfig> = async ({
 
 export async function initHullaProject(
   dir: string,
-  mode: "check" | "overwrite" = "check"
+  mode: "check" | "overwrite" = "check",
+  configPath?: string
 ): Promise<Ok<HullaConfig> | Err<Error>> {
   try {
     // 1. Validate directory and check existing config
-    const existingConfig = await validateDirectoryAndGetConfig(dir)
+    const existingConfig = await validateDirectoryAndGetConfig(dir, configPath)
     const hasExistingConfig = !!existingConfig
     if (existingConfig) {
       if (mode === "check") {
@@ -88,7 +91,7 @@ export async function initHullaProject(
     // 3. Detect and configure scripts
     const { scripts } = await detectScriptsAndManager(packageJson, dir)
 
-    const configPath = resolveAbsolute(dir, ".hulla/hulla.json")
+    const outputConfigPath = resolveAbsolute(dir, ".hulla/hulla.json")
     const rawConfig: RawHullaConfig = {
       $schema: getSchemaUrl(),
       cli: {
@@ -101,15 +104,23 @@ export async function initHullaProject(
     const parsedConfig = ConfigSchema.parse(rawConfig)
     const config: HullaConfig = {
       ...parsedConfig,
-      path: configPath,
+      path: outputConfigPath,
       rawConfig,
     }
 
-    log.info(`Writing config to ${d.path(configPath)}`)
-    await writeConfig(config, configPath)
+    log.info(`Writing config to ${d.path(outputConfigPath)}`)
+    await writeConfig(config, outputConfigPath)
 
     return ok(config)
   } catch (error) {
     return err(error as Error)
   }
+}
+
+export function getProjectDirFromConfigOption(configPath?: string): string {
+  if (!configPath) {
+    return process.cwd()
+  }
+
+  return dirname(resolveAbsolute(process.cwd(), configPath))
 }
