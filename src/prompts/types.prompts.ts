@@ -1,3 +1,3 @@
 export type ExtendedPrompt = {
-  onCancel?: VoidFunction
+  onCancel?: () => void
 }

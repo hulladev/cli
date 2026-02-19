@@ -16,7 +16,8 @@ export const ui: HandlerFunction<"commands", "ui"> = async ({
   config: hullaConfig,
   rawConfig,
 }) => {
-  if (!isUIConfigured(rawConfig) && !result.commands.init.detected) {
+  const uiConfigured = await isUIConfigured(hullaConfig)
+  if (!uiConfigured && !result.commands.init.detected) {
     log.info(
       `It looks like you don't have ${d.package("normal", " @hulla/ui ")} configured. Let's initialize it for you.`
     )

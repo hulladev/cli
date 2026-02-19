@@ -3,7 +3,11 @@ import { confirm } from "@/prompts/confirm"
 import { log } from "@/prompts/log"
 import { select } from "@/prompts/select"
 import { text } from "@/prompts/text"
-import type { TsconfigPatchPlan, UISelectedFramework } from "@/types"
+import type {
+  TsconfigPatchPlan,
+  UISelectedFramework,
+  UITsconfigSelection,
+} from "@/types"
 import { dirname, isAbsolute, relative, resolve } from "path"
 import z from "zod"
 import { applyTsconfigPatches } from "./tsconfig/apply"
@@ -35,10 +39,14 @@ type WorkingTsconfig = {
 
 export async function createUiTsconfigTask({
   selectedFrameworks,
-}: CreateUiTsconfigTaskInput): Promise<void> {
+}: CreateUiTsconfigTaskInput): Promise<UITsconfigSelection> {
+  const selection: UITsconfigSelection = {
+    frameworkPaths: {},
+  }
+
   if (selectedFrameworks.length === 0) {
     log.warn("No frameworks selected. Skipping tsconfig changes.")
-    return
+    return selection
   }
 
   const cwd = process.cwd()
@@ -49,7 +57,7 @@ export async function createUiTsconfigTask({
     log.warn(
       "No framework tsconfig templates found. Skipping tsconfig changes."
     )
-    return
+    return selection
   }
 
   const tsMajor = await getTypescriptMajorVersion(cwd)
@@ -70,22 +78,30 @@ export async function createUiTsconfigTask({
       defaultNewPath: "./tsconfig.json",
     })
 
+    selection.frameworkPaths[framework.id] = tsconfigPath
+
     const working = await getWorkingTsconfig(workingByPath, tsconfigPath)
-    working.config = mergeWithFrameworkTemplate(
+    const merged = mergeWithFrameworkTemplate(
       working.config,
       framework.templateConfig,
       {
         allowBaseUrl,
       }
     ) as Record<string, unknown>
+
+    working.config = mergeIncludeEntries(
+      merged,
+      buildFrameworkIncludeEntries(framework)
+    )
   } else {
     const rootPath = await requestTsconfigPath({
       message: "Select root tsconfig.json for project references",
       existingTsconfigs,
       defaultNewPath: "./tsconfig.json",
     })
+    selection.rootPath = rootPath
 
-    const frameworkPaths: Array<{ framework: string; path: string }> = []
+    const frameworkPaths: Array<{ frameworkId: string; path: string }> = []
     for (const framework of normalizedFrameworks) {
       const frameworkPath = await requestTsconfigPath({
         message: `Select tsconfig.json path for ${framework.name}`,
@@ -93,17 +109,23 @@ export async function createUiTsconfigTask({
         defaultNewPath: `./src/${framework.name.toLowerCase()}/tsconfig.json`,
       })
 
+      selection.frameworkPaths[framework.id] = frameworkPath
       frameworkPaths.push({
-        framework: framework.name,
+        frameworkId: framework.id,
         path: frameworkPath,
       })
 
       const working = await getWorkingTsconfig(workingByPath, frameworkPath)
-      working.config = mergeWithFrameworkTemplate(
+      const merged = mergeWithFrameworkTemplate(
         working.config,
         framework.templateConfig,
         { allowBaseUrl }
       ) as Record<string, unknown>
+
+      working.config = mergeIncludeEntries(
+        merged,
+        buildFrameworkIncludeEntries(framework)
+      )
     }
 
     const rootWorking = await getWorkingTsconfig(workingByPath, rootPath)
@@ -119,7 +141,7 @@ export async function createUiTsconfigTask({
   const patches = buildPatchPlans(workingByPath)
   if (patches.length === 0) {
     log.info("No tsconfig changes required.")
-    return
+    return selection
   }
 
   for (const patch of patches) {
@@ -134,11 +156,12 @@ export async function createUiTsconfigTask({
 
   if (!shouldApply) {
     log.warn("Skipped tsconfig changes.")
-    return
+    return selection
   }
 
   await applyTsconfigPatches(patches)
   log.info("tsconfig changes applied successfully.")
+  return selection
 }
 
 function normalizePath(input: string): string {
@@ -165,6 +188,70 @@ function toReferencePath(
   )
   if (reference.length === 0) return "./tsconfig.json"
   return reference.startsWith(".") ? reference : `./${reference}`
+}
+
+function toIncludeGlob(path: string): string {
+  const normalized = normalizePath(path).replace(/^\.\//, "")
+  if (normalized.length === 0 || normalized === ".") {
+    return "./**/*"
+  }
+  return normalized.startsWith(".")
+    ? `${normalized}/**/*`
+    : `./${normalized}/**/*`
+}
+
+function toIncludePath(path: string): string {
+  const normalized = normalizePath(path).replace(/^\.\//, "")
+  if (normalized.length === 0 || normalized === ".") {
+    return "."
+  }
+  return normalized.startsWith(".") ? normalized : `./${normalized}`
+}
+
+function buildFrameworkIncludeEntries(
+  framework: UISelectedFramework
+): string[] {
+  const includes = [toIncludeGlob(framework.outputPath)]
+  for (const destination of framework.copyFileDestinations) {
+    includes.push(toIncludePath(destination))
+  }
+  return includes
+}
+
+function mergeIncludeEntries(
+  config: Record<string, unknown>,
+  entriesToAdd: string[]
+): Record<string, unknown> {
+  const normalizedIncoming = entriesToAdd
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+
+  if (normalizedIncoming.length === 0) {
+    return config
+  }
+
+  const existing = Array.isArray(config.include)
+    ? config.include.filter(
+        (value): value is string => typeof value === "string"
+      )
+    : []
+
+  const result = [...existing]
+  const seen = new Set(existing.map((value) => normalizePath(value)))
+
+  for (const incoming of normalizedIncoming) {
+    const normalized = normalizePath(incoming)
+    if (seen.has(normalized)) {
+      continue
+    }
+    seen.add(normalized)
+    result.push(incoming)
+  }
+
+  return {
+    ...config,
+    include: result,
+  }
 }
 
 async function requestTsconfigPath(input: {

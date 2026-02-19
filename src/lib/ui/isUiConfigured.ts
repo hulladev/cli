@@ -1,13 +1,11 @@
-import type { RawHullaConfig } from "@/types"
-import { uiSchema } from "schemas/hulla.schema"
+import type { HullaConfig } from "@/types"
+import { readUIConfig } from "./config"
 
-export function isUIConfigured(rawConfig: RawHullaConfig) {
-  if (!rawConfig.ui) {
+export async function isUIConfigured(config: HullaConfig) {
+  try {
+    const uiConfig = await readUIConfig(config)
+    return uiConfig.data.installs.length > 0
+  } catch {
     return false
   }
-  const result = uiSchema.safeParse(rawConfig.ui)
-  if (!result.success) {
-    return false
-  }
-  return true
 }

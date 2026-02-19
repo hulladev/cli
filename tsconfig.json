@@ -4,6 +4,7 @@
     "target": "esnext",
     "module": "commonjs",
     "moduleResolution": "node",
+    "lib": ["ESNext"],
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "strict": true,

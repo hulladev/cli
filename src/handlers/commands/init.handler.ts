@@ -94,6 +94,9 @@ export async function initHullaProject(
       cli: {
         scripts,
       },
+      configs: {
+        ui: ".hulla/ui.json",
+      },
     }
     const parsedConfig = ConfigSchema.parse(rawConfig)
     const config: HullaConfig = {

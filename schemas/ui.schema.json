@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "default": {
+    "version": 1,
+    "sources": [
+      "https://github.com/hulladev/ui/tree/master/generated"
+    ],
+    "installs": []
+  },
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "default": 1,
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "sources": {
+      "default": [
+        "https://github.com/hulladev/ui/tree/master/generated"
+      ],
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "string",
+            "format": "uri"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "installs": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "sourceUrl": {
+            "type": "string"
+          },
+          "libraryName": {
+            "type": "string"
+          },
+          "componentsRoot": {
+            "type": "string"
+          },
+          "copyFilesRoot": {
+            "type": "string"
+          },
+          "rootTsconfigPath": {
+            "type": "string"
+          },
+          "frameworks": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "templatePath": {
+                  "type": "string"
+                },
+                "outputPath": {
+                  "type": "string"
+                },
+                "tsconfigPath": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "templatePath",
+                "outputPath",
+                "tsconfigPath"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "sourceUrl",
+          "libraryName",
+          "componentsRoot",
+          "copyFilesRoot",
+          "frameworks"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "version",
+    "sources",
+    "installs"
+  ],
+  "additionalProperties": false,
+  "title": "Hulla UI Config Schema",
+  "description": "UI package configuration schema for Hulla CLI"
+}

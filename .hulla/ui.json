@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "sources": [
+    "https://github.com/hulladev/ui/tree/master/generated"
+  ],
+  "installs": [
+    {
+      "sourceUrl": "https://github.com/hulladev/ui/tree/master/generated",
+      "libraryName": "@hulla/ui",
+      "componentsRoot": "src/components",
+      "copyFilesRoot": "src",
+      "frameworks": [
+        {
+          "name": "react",
+          "templatePath": "react",
+          "outputPath": "src/components/react",
+          "tsconfigPath": "tsconfig.json"
+        }
+      ]
+    }
+  ]
+}

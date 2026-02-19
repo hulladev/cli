@@ -102,8 +102,14 @@ export type UIInitTaskState = {
 }
 
 export type UISelectedFramework = {
+  id: string
+  sourceUrl: string
+  libraryName: string
   name: string
+  templatePath: string
   templateTsconfigPath: string
+  outputPath: string
+  copyFileDestinations: string[]
 }
 
 export type TsconfigPatchPlan = {
@@ -111,4 +117,9 @@ export type TsconfigPatchPlan = {
   beforeText: string
   afterText: string
   mode: "create" | "update"
+}
+
+export type UITsconfigSelection = {
+  frameworkPaths: Record<string, string>
+  rootPath?: string
 }

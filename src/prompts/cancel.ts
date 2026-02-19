@@ -11,7 +11,7 @@ export function defaultCancel<T extends Parameters<typeof isCancel>[0]>(
   return params
 }
 
-export function handleCancel<T>(result: T | symbol, handler?: VoidFunction) {
+export function handleCancel<T>(result: T | symbol, handler?: () => void) {
   if (isCancel(result)) {
     if (handler) {
       handler()

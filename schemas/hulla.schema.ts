@@ -14,35 +14,21 @@ export const cliSchema = z.object({
   logs: z.boolean().optional().default(true),
 })
 
-export const defaultUiConfig = {
-  libs: [
-    {
-      url: "https://github.com/hulladev/ui/tree/master/generated",
-      frameworks: [],
-    },
-  ],
+export const defaultConfigRefs = {
+  ui: ".hulla/ui.json",
 }
 
-export const uiLibSchema = z.object({
-  url: z.union([
-    z.url(),
-    z.string().refine((val) => !/^(?:[a-z]+:)?\/\//i.test(val), {
-      message: "Must be a valid URL or local path",
-    }),
-  ]),
-  frameworks: z.array(z.string()),
-})
-
-export const uiSchema = z
+export const configRefsSchema = z
   .object({
-    libs: z.array(uiLibSchema).optional().default(defaultUiConfig.libs),
+    ui: z.string().optional().default(defaultConfigRefs.ui),
   })
-  .default(defaultUiConfig)
+  .optional()
+  .default(defaultConfigRefs)
 
 export const ConfigSchema = z.object({
   $schema: z.string().optional(),
   cli: cliSchema,
-  ui: uiSchema.optional(),
+  configs: configRefsSchema,
 })
 
 export type HullaConfigSchema = z.infer<typeof ConfigSchema>
