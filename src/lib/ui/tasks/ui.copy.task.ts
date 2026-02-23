@@ -385,16 +385,19 @@ function remapFirstSegment(
   destTemplate: string,
   copyFilesRoot: string
 ): string {
-  const destSegments = normalizeProjectRelativePath(destTemplate)
-    .split("/")
-    .filter((segment) => segment.length > 0)
-  if (destSegments.length === 1) {
-    return normalizeProjectRelativePath(
-      posix.join(copyFilesRoot, destSegments[0] as string)
-    )
+  const normalizedDest = normalizeProjectRelativePath(destTemplate)
+  const normalizedRoot = normalizeProjectRelativePath(copyFilesRoot)
+
+  if (
+    normalizedDest === normalizedRoot ||
+    normalizedDest.startsWith(`${normalizedRoot}/`)
+  ) {
+    return normalizedDest
   }
-  const rest = destSegments.slice(1)
-  return normalizeProjectRelativePath(posix.join(copyFilesRoot, ...rest))
+
+  return normalizeProjectRelativePath(
+    posix.join(normalizedRoot, normalizedDest)
+  )
 }
 
 function isRewriteCandidate(path: string): boolean {

@@ -1,24 +1,19 @@
 import { d } from "@/decorators"
 import { getUILibCacheKey, updateUICache } from "@/lib/cache"
-import { resolveAbsolute } from "@/lib/shared/bunUtils"
 import { detectFrameworkDetailed } from "@/lib/shared/detectFramework"
-import type { PackageJson } from "@/lib/shared/getPackageFiles"
 import {
   defaultUISources,
   normalizeProjectRelativePath,
   type UIProjectConfig,
 } from "@/lib/ui/config"
-import { box } from "@/prompts/box"
-import { confirm } from "@/prompts/confirm"
 import { log } from "@/prompts/log"
 import { multiselect } from "@/prompts/multiselect"
 import { spinner } from "@/prompts/spinner"
 import { text } from "@/prompts/text"
 import type { HullaConfig, UISelectedFramework } from "@/types"
-import { entries, keys, values } from "@/utils/objects"
+import { keys } from "@/utils/objects"
 import gittar from "@hulla/gittar"
 import { join, posix } from "path"
-import { cwd } from "process"
 import type { UICacheItem } from "schemas/hulla.schema"
 
 type CreateUiInstallTaskInput = {
@@ -156,8 +151,7 @@ export async function createUiInstallTask({
     selectedLibs = libs
   }
 
-  const { detections: detectedFrameworks, packageJsons } =
-    await detectFrameworkDetailed()
+  const { detections: detectedFrameworks } = await detectFrameworkDetailed()
   const detectedMap = new Map(
     detectedFrameworks.map((detection) => [
       detection.framework.toLowerCase(),
@@ -258,9 +252,7 @@ export async function createUiInstallTask({
 
     for (const framework of selectedFrameworkEntries) {
       const templatePath = normalizeTemplatePath(framework.templatePath)
-      const outputPath = normalizeProjectRelativePath(
-        posix.join(componentsRoot, templatePath)
-      )
+      const outputPath = normalizeProjectRelativePath(componentsRoot)
       const sharedCopyEntries = normalizeCopyEntries(
         lib.config.copyFiles?.shared
       )
@@ -331,130 +323,6 @@ export async function createUiInstallTask({
     )
   )
 
-  // Collect dependencies from all selected framework package.json files
-  const depsMap = new Map<string, string>()
-  const devDepsMap = new Map<string, string>()
-
-  for (const cacheItem of cacheItems) {
-    for (const frameworkPath of values(cacheItem.frameworks)) {
-      const packageJsonPath = join(frameworkPath, "package.json")
-      const packageJson = await readFrameworkPackageJson(packageJsonPath)
-      if (!packageJson) continue
-
-      if (packageJson.dependencies) {
-        for (const [name, version] of entries(packageJson.dependencies)) {
-          if (!depsMap.has(name)) {
-            depsMap.set(name, version)
-          }
-        }
-      }
-
-      if (packageJson.devDependencies) {
-        for (const [name, version] of entries(packageJson.devDependencies)) {
-          if (!devDepsMap.has(name)) {
-            devDepsMap.set(name, version)
-          }
-        }
-      }
-    }
-  }
-
-  const rootPackageJsonPath = resolveAbsolute(cwd(), "package.json")
-  const projectPackageJson = packageJsons.get(rootPackageJsonPath)
-  const installedDeps = new Set<string>([
-    ...keys(projectPackageJson?.dependencies ?? {}),
-    ...keys(projectPackageJson?.devDependencies ?? {}),
-  ])
-
-  const { toInstall: depsToInstall, skipped: skippedDeps } =
-    filterAndFormatDeps(depsMap, installedDeps)
-  const { toInstall: devDepsToInstall, skipped: skippedDevDeps } =
-    filterAndFormatDeps(devDepsMap, installedDeps)
-
-  const hasAnythingToInstall =
-    depsToInstall.length > 0 || devDepsToInstall.length > 0
-  const allSkipped = [...skippedDeps, ...skippedDevDeps]
-
-  if (!hasAnythingToInstall) {
-    log.info("All required dependencies are already installed")
-    return { selectedFrameworks, installDrafts, copyContexts }
-  }
-
-  const boxLines: string[] = []
-
-  if (depsToInstall.length > 0) {
-    boxLines.push(d.highlight("Dependencies:"))
-    depsToInstall.forEach((dep) => boxLines.push(`  ${d.success("+")} ${dep}`))
-  }
-
-  if (devDepsToInstall.length > 0) {
-    if (boxLines.length > 0) boxLines.push("")
-    boxLines.push(d.highlight("Dev Dependencies:"))
-    devDepsToInstall.forEach((dep) =>
-      boxLines.push(`  ${d.success("+")} ${dep}`)
-    )
-  }
-
-  if (allSkipped.length > 0) {
-    if (boxLines.length > 0) boxLines.push("")
-    boxLines.push(d.secondary("Already installed:"))
-    allSkipped.forEach((dep) => boxLines.push(`  ${d.secondary("~")} ${dep}`))
-  }
-
-  box(boxLines.join("\n"), "Required Dependencies")
-
-  const shouldInstall = await confirm({
-    message: "Would you like to install these dependencies now?",
-    initialValue: true,
-  })
-
-  if (!shouldInstall) {
-    log.warn(
-      "Make sure to install the dependencies manually, otherwise the UI library may not work properly"
-    )
-    return { selectedFrameworks, installDrafts, copyContexts }
-  }
-
-  if (allSkipped.length > 0) {
-    log.info(`Skipping already installed: ${allSkipped.join(", ")}`)
-  }
-
-  if (depsToInstall.length > 0) {
-    const { add } = config.cli.scripts
-    const [command, ...args] = add.split(" ")
-    s.start("Installing dependencies...")
-    const proc = Bun.spawn([command, ...args, ...depsToInstall], {
-      stdout: "inherit",
-      stderr: "inherit",
-    })
-    await proc.exited
-    if (proc.exitCode !== 0) {
-      s.stop("Failed to install dependencies")
-      throw new Error(
-        `Failed to install dependencies (exit code: ${proc.exitCode})`
-      )
-    }
-    s.stop("Dependencies installed successfully")
-  }
-
-  if (devDepsToInstall.length > 0) {
-    const { addDev } = config.cli.scripts
-    const [command, ...args] = addDev.split(" ")
-    s.start("Installing dev dependencies...")
-    const proc = Bun.spawn([command, ...args, ...devDepsToInstall], {
-      stdout: "inherit",
-      stderr: "inherit",
-    })
-    await proc.exited
-    if (proc.exitCode !== 0) {
-      s.stop("Failed to install dev dependencies")
-      throw new Error(
-        `Failed to install dev dependencies (exit code: ${proc.exitCode})`
-      )
-    }
-    s.stop("Dev dependencies installed successfully")
-  }
-
   return { selectedFrameworks, installDrafts, copyContexts }
 }
 
@@ -520,32 +388,4 @@ function normalizeCopyEntries(entries?: UICopyEntry[]): UICopyEntry[] {
 
 function normalizeTemplatePath(value: string): string {
   return normalizeProjectRelativePath(value)
-}
-
-async function readFrameworkPackageJson(
-  path: string
-): Promise<PackageJson | null> {
-  try {
-    const file = Bun.file(path)
-    if (!(await file.exists())) return null
-    return (await file.json()) as PackageJson
-  } catch {
-    return null
-  }
-}
-
-function filterAndFormatDeps(
-  depsMap: Map<string, string>,
-  installedDeps: Set<string>
-): { toInstall: string[]; skipped: string[] } {
-  const toInstall: string[] = []
-  const skipped: string[] = []
-  for (const [name, version] of depsMap) {
-    if (installedDeps.has(name)) {
-      skipped.push(name)
-      continue
-    }
-    toInstall.push(version === "*" ? name : `${name}@${version}`)
-  }
-  return { toInstall, skipped }
 }

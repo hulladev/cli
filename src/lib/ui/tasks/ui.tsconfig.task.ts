@@ -231,12 +231,7 @@ function resolveComponentsIncludeRoot(framework: UISelectedFramework): string {
     return outputPath.slice(0, -suffix.length)
   }
 
-  const lastSlashIndex = outputPath.lastIndexOf("/")
-  if (lastSlashIndex < 0) {
-    return outputPath
-  }
-
-  return outputPath.slice(0, lastSlashIndex)
+  return outputPath
 }
 
 function findSharedTopLevelRoot(paths: string[]): string | null {

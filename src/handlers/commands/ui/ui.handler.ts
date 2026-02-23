@@ -3,9 +3,10 @@ import { executeHandlers } from "@/lib/shared/executeHandlers"
 import { isUIConfigured } from "@/lib/ui/isUiConfigured"
 import { log } from "@/prompts/log"
 import type { HandlerFunction } from "@/types"
-import { ok } from "@hulla/control"
+import { err, ok } from "@hulla/control"
 import { add } from "./ui.add.handler"
 import { config } from "./ui.config.handler"
+import { framework } from "./ui.framework.handler"
 import { help } from "./ui.help.hander"
 import { init } from "./ui.init.handler"
 import { remove } from "./ui.remove.handler"
@@ -37,10 +38,11 @@ export const ui: HandlerFunction<"commands", "ui"> = async ({
     handlers: {
       help,
       config,
+      framework,
     },
   })
 
-  await executeHandlers({
+  const subCommandResults = await executeHandlers({
     result,
     on: "commands",
     parserResult,
@@ -51,6 +53,15 @@ export const ui: HandlerFunction<"commands", "ui"> = async ({
       init,
     },
   })
+  for (const handlerResult of subCommandResults.values()) {
+    if (handlerResult && typeof handlerResult === "object") {
+      const maybeControl = handlerResult as { isErr?: () => boolean }
+      if (maybeControl.isErr?.()) {
+        const failed = handlerResult as { error: Error }
+        return err(failed.error)
+      }
+    }
+  }
 
   return ok({
     data: null,

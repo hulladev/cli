@@ -123,3 +123,29 @@ export type UITsconfigSelection = {
   frameworkPaths: Record<string, string>
   rootPath?: string
 }
+
+export type UIAddResolvedComponent = {
+  componentInput: string
+  componentName: string
+  sourceUrl: string
+  libraryName: string
+  frameworkName: string
+  sourceFrameworkRoot: string
+  sourceComponentDir: string
+  outputPath: string
+}
+
+export type UIAddFileOperation = {
+  sourcePath: string
+  destinationPath: string
+  relativePath: string
+  destinationExists: boolean
+}
+
+export type UIAddSummary = {
+  copied: number
+  overwritten: number
+  skippedExisting: number
+  missingComponents: string[]
+  promptedFrameworkSelections: number
+}
