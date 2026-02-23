@@ -190,16 +190,6 @@ function toReferencePath(
   return reference.startsWith(".") ? reference : `./${reference}`
 }
 
-function toIncludeGlob(path: string): string {
-  const normalized = normalizePath(path).replace(/^\.\//, "")
-  if (normalized.length === 0 || normalized === ".") {
-    return "./**/*"
-  }
-  return normalized.startsWith(".")
-    ? `${normalized}/**/*`
-    : `./${normalized}/**/*`
-}
-
 function toIncludePath(path: string): string {
   const normalized = normalizePath(path).replace(/^\.\//, "")
   if (normalized.length === 0 || normalized === ".") {
@@ -211,11 +201,64 @@ function toIncludePath(path: string): string {
 function buildFrameworkIncludeEntries(
   framework: UISelectedFramework
 ): string[] {
-  const includes = [toIncludeGlob(framework.outputPath)]
+  const componentsRoot = resolveComponentsIncludeRoot(framework)
+  const allPaths = [componentsRoot, ...framework.copyFileDestinations]
+  const sharedRoot = findSharedTopLevelRoot(allPaths)
+
+  if (sharedRoot) {
+    return [toIncludePath(sharedRoot)]
+  }
+
+  const includes = [toIncludePath(componentsRoot)]
   for (const destination of framework.copyFileDestinations) {
     includes.push(toIncludePath(destination))
   }
   return includes
+}
+
+function resolveComponentsIncludeRoot(framework: UISelectedFramework): string {
+  const outputPath = normalizePath(framework.outputPath).replace(/\/+$/, "")
+  const templatePath = normalizePath(framework.templatePath)
+    .replace(/^\.\//, "")
+    .replace(/\/+$/, "")
+
+  if (templatePath.length === 0 || templatePath === ".") {
+    return outputPath
+  }
+
+  const suffix = `/${templatePath}`
+  if (outputPath.endsWith(suffix)) {
+    return outputPath.slice(0, -suffix.length)
+  }
+
+  const lastSlashIndex = outputPath.lastIndexOf("/")
+  if (lastSlashIndex < 0) {
+    return outputPath
+  }
+
+  return outputPath.slice(0, lastSlashIndex)
+}
+
+function findSharedTopLevelRoot(paths: string[]): string | null {
+  const normalizedPaths = paths
+    .map((path) => normalizePath(path).replace(/^\.\//, ""))
+    .filter((path) => path.length > 0 && path !== ".")
+
+  if (normalizedPaths.length < 2) {
+    return null
+  }
+
+  const firstRoot = normalizedPaths[0].split("/")[0]
+  if (!firstRoot || firstRoot === ".") {
+    return null
+  }
+
+  const allShareRoot = normalizedPaths.every((path) => {
+    const currentRoot = path.split("/")[0]
+    return currentRoot === firstRoot
+  })
+
+  return allShareRoot ? firstRoot : null
 }
 
 function mergeIncludeEntries(

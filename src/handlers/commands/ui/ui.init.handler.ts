@@ -5,6 +5,7 @@ import {
   readUIConfig,
   writeUIConfig,
 } from "@/lib/ui/config"
+import { createUiCopyTask } from "@/lib/ui/tasks/ui.copy.task"
 import { createUiInstallTask } from "@/lib/ui/tasks/ui.install.task"
 import { createUiTsconfigTask } from "@/lib/ui/tasks/ui.tsconfig.task"
 import type { SubHandlerFunction } from "@/types"
@@ -13,12 +14,14 @@ import { isAbsolute, relative } from "path"
 
 export const init: SubHandlerFunction<"ui", "init"> = async ({ config }) => {
   const loadedUIConfig = await readUIConfig(config)
-  const { selectedFrameworks, installDrafts } = await createUiInstallTask({
-    config,
-    uiConfig: loadedUIConfig.data,
-  })
+  const { selectedFrameworks, installDrafts, copyContexts } =
+    await createUiInstallTask({
+      config,
+      uiConfig: loadedUIConfig.data,
+    })
 
   const tsconfigSelection = await createUiTsconfigTask({ selectedFrameworks })
+  await createUiCopyTask({ config, copyContexts })
   const projectRoot = getProjectRootFromConfigPath(config.path)
   const normalizedFrameworkTsconfigs = Object.fromEntries(
     Object.entries(tsconfigSelection.frameworkPaths).map(

@@ -9,8 +9,6 @@
         "@hulla/args": "^0.0.4",
         "@hulla/control": "^0.0.3",
         "@hulla/gittar": "^0.0.4",
-        "@hulla/style": "^0.2.1",
-        "@types/node": "^25.3.0",
         "picocolors": "^1.1.1",
         "zod": "^4.2.1",
       },
@@ -165,8 +163,6 @@
     "@hulla/control": ["@hulla/control@0.0.3", "", {}, "sha512-63McqzBte48N223OV7CZAQccoyk/9TGbIeal242gay5Sb+JP/SQIpjSxLY3RX0mZYKODZ2oApWUzZhtXiRcu1Q=="],
 
     "@hulla/gittar": ["@hulla/gittar@0.0.4", "", {}, "sha512-mtY22SN62bAsaF9Iq87+jiSo9NXUOgq5xPMJmLhw1xfGHCkwdsFoC1vxwoDaLYY0BW5P+SKk66v0ZaUeXjS+Mw=="],
-
-    "@hulla/style": ["@hulla/style@0.2.1", "", {}, "sha512-a4KiOW3j/4j8yYbFevDnrKOVpO7/4bcPA8G7BmjqpYz+mZsMcCDzzdRiQw19bdkwrpSaP8zawi/2Ii/D2jNxOw=="],
 
     "@hulla/ui": ["@hulla/ui@0.0.0", "", { "dependencies": { "@hulla/args": "^0.0.2", "typescript": "^5.9.2" }, "bin": { "uigen": "dist/bin/uigen.js" } }, "sha512-WUizJW7ZX0PbiuMmaslBW+Wp9AZCnC8Dr9pqMGUOvT7Fa8UKfVrkRTETBTYf5VAXb/iAF3RcKfw6rOoRN7+exA=="],
 

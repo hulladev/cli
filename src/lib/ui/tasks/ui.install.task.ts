@@ -41,6 +41,31 @@ export type UIInstallDraft = {
   frameworks: UIInstallDraftFramework[]
 }
 
+export type UICopyEntry = {
+  src: string
+  dest?: string
+  required: boolean
+  description?: string
+}
+
+export type UICopyFrameworkContext = {
+  id: string
+  name: string
+  templatePath: string
+  outputPath: string
+  copyEntries: UICopyEntry[]
+}
+
+export type UICopyLibraryContext = {
+  sourceUrl: string
+  libraryName: string
+  rootDir: string
+  componentsRoot: string
+  copyFilesRoot: string
+  sharedCopyEntries: UICopyEntry[]
+  frameworks: UICopyFrameworkContext[]
+}
+
 type FetchedLibrary = {
   url: string
   rootDir: string
@@ -49,17 +74,10 @@ type FetchedLibrary = {
   branch: string | undefined
 }
 
-type NormalizedCopyFile = {
-  src: string
-  dest: string
-  required: boolean
-  description?: string
-}
-
 type UILibraryWithCopyFiles = UILibrary & {
   copyFiles?: {
-    shared?: NormalizedCopyFile[]
-  } & Record<string, NormalizedCopyFile[]>
+    shared?: UICopyEntry[]
+  } & Record<string, UICopyEntry[]>
 }
 
 type UILibrary = {
@@ -76,6 +94,7 @@ export async function createUiInstallTask({
 }: CreateUiInstallTaskInput): Promise<{
   selectedFrameworks: UISelectedFramework[]
   installDrafts: UIInstallDraft[]
+  copyContexts: UICopyLibraryContext[]
 }> {
   const libSources =
     uiConfig.sources.length > 0 ? uiConfig.sources : defaultUISources
@@ -117,6 +136,7 @@ export async function createUiInstallTask({
     return {
       selectedFrameworks: [],
       installDrafts: [],
+      copyContexts: [],
     }
   }
 
@@ -148,6 +168,7 @@ export async function createUiInstallTask({
   const cacheItems: UICacheItem[] = []
   const installDrafts: UIInstallDraft[] = []
   const selectedFrameworks: UISelectedFramework[] = []
+  const copyContexts: UICopyLibraryContext[] = []
 
   for (const lib of selectedLibs) {
     const frameworkKeys = keys(lib.config.frameworks)
@@ -233,15 +254,22 @@ export async function createUiInstallTask({
     })
 
     const draftFrameworks: UIInstallDraftFramework[] = []
+    const copyFrameworks: UICopyFrameworkContext[] = []
 
     for (const framework of selectedFrameworkEntries) {
       const templatePath = normalizeTemplatePath(framework.templatePath)
       const outputPath = normalizeProjectRelativePath(
         posix.join(componentsRoot, templatePath)
       )
+      const sharedCopyEntries = normalizeCopyEntries(
+        lib.config.copyFiles?.shared
+      )
+      const frameworkCopyEntries = normalizeCopyEntries(
+        lib.config.copyFiles?.[framework.name]
+      )
+      const allCopyEntries = [...sharedCopyEntries, ...frameworkCopyEntries]
       const frameworkCopyDestinations = getCopyDestinations({
-        copyFiles: lib.config.copyFiles,
-        framework: framework.name,
+        copyFiles: allCopyEntries,
         copyFilesRoot,
       })
 
@@ -264,6 +292,14 @@ export async function createUiInstallTask({
         outputPath,
         copyFileDestinations: frameworkCopyDestinations,
       })
+
+      copyFrameworks.push({
+        id: frameworkId,
+        name: framework.name,
+        templatePath,
+        outputPath,
+        copyEntries: frameworkCopyEntries,
+      })
     }
 
     installDrafts.push({
@@ -272,6 +308,16 @@ export async function createUiInstallTask({
       componentsRoot,
       copyFilesRoot,
       frameworks: draftFrameworks,
+    })
+
+    copyContexts.push({
+      sourceUrl: lib.url,
+      libraryName: lib.config.name,
+      rootDir: lib.rootDir,
+      componentsRoot,
+      copyFilesRoot,
+      sharedCopyEntries: normalizeCopyEntries(lib.config.copyFiles?.shared),
+      frameworks: copyFrameworks,
     })
   }
 
@@ -331,7 +377,7 @@ export async function createUiInstallTask({
 
   if (!hasAnythingToInstall) {
     log.info("All required dependencies are already installed")
-    return { selectedFrameworks, installDrafts }
+    return { selectedFrameworks, installDrafts, copyContexts }
   }
 
   const boxLines: string[] = []
@@ -366,7 +412,7 @@ export async function createUiInstallTask({
     log.warn(
       "Make sure to install the dependencies manually, otherwise the UI library may not work properly"
     )
-    return { selectedFrameworks, installDrafts }
+    return { selectedFrameworks, installDrafts, copyContexts }
   }
 
   if (allSkipped.length > 0) {
@@ -409,7 +455,7 @@ export async function createUiInstallTask({
     s.stop("Dev dependencies installed successfully")
   }
 
-  return { selectedFrameworks, installDrafts }
+  return { selectedFrameworks, installDrafts, copyContexts }
 }
 
 async function requestProjectPath(input: {
@@ -434,31 +480,42 @@ function hasCopyFileEntries(
   config: UILibraryWithCopyFiles,
   frameworks: string[]
 ): boolean {
-  const sharedFiles = config.copyFiles?.shared ?? []
+  const sharedFiles = normalizeCopyEntries(config.copyFiles?.shared)
   if (sharedFiles.length > 0) {
     return true
   }
 
   return frameworks.some(
-    (framework) => (config.copyFiles?.[framework] ?? []).length > 0
+    (framework) =>
+      normalizeCopyEntries(config.copyFiles?.[framework]).length > 0
   )
 }
 
 function getCopyDestinations(input: {
-  copyFiles: UILibraryWithCopyFiles["copyFiles"]
-  framework: string
+  copyFiles: UICopyEntry[]
   copyFilesRoot: string
 }): string[] {
-  const sharedFiles = input.copyFiles?.shared ?? []
-  const frameworkFiles = input.copyFiles?.[input.framework] ?? []
-  const allFiles = [...sharedFiles, ...frameworkFiles]
-
-  return allFiles.map((file) => {
+  return input.copyFiles.map((file) => {
     const targetPath = file.dest ?? file.src
     return normalizeProjectRelativePath(
       posix.join(input.copyFilesRoot, targetPath)
     )
   })
+}
+
+function normalizeCopyEntries(entries?: UICopyEntry[]): UICopyEntry[] {
+  if (!entries || entries.length === 0) {
+    return []
+  }
+  return entries.map((entry) => ({
+    src: normalizeProjectRelativePath(entry.src),
+    dest:
+      typeof entry.dest === "string"
+        ? normalizeProjectRelativePath(entry.dest)
+        : undefined,
+    required: entry.required ?? true,
+    description: entry.description,
+  }))
 }
 
 function normalizeTemplatePath(value: string): string {
