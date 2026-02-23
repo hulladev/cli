@@ -19,6 +19,7 @@ export interface UIProjectConfigSchema {
       tsconfigPath: string
     }[]
   }[]
+  postAddUpdateStep: string
 }
 
 // To update this file, run bun gen:schema

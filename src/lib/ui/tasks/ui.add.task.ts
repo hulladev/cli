@@ -4,6 +4,7 @@ import { directoryExists } from "@/lib/shared/bunUtils"
 import type { PackageJson } from "@/lib/shared/getPackageFiles"
 import {
   getProjectRootFromConfigPath,
+  normalizePath,
   normalizeProjectRelativePath,
   readUIConfig,
 } from "@/lib/ui/config"
@@ -24,6 +25,7 @@ import gittar from "@hulla/gittar"
 import { mkdir } from "node:fs/promises"
 import { basename, dirname, join, relative } from "path"
 import type { UICacheItem } from "schemas/hulla.schema"
+import type { UIProjectConfigSchema } from "schemas/ui.types"
 import { createUnifiedDiff } from "./tsconfig/diff"
 
 type CreateUiAddTaskInput = {
@@ -38,6 +40,8 @@ type FrameworkInstall = {
   frameworkName: string
   templatePath: string
   outputPath: string
+  copyFilesRoot: string
+  sourceRoot: string
   sourceFrameworkRoot: string
   componentsByLowerName: Map<string, string>
 }
@@ -46,6 +50,18 @@ type CachedSource = {
   rootDir: string
   commit: string | undefined
   branch: string | undefined
+}
+
+type CopyFileEntry = {
+  src: string
+  dest?: string
+  required?: boolean
+}
+
+type UILibraryWithCopyFiles = {
+  copyFiles?: {
+    shared?: CopyFileEntry[]
+  } & Record<string, CopyFileEntry[] | undefined>
 }
 
 export async function createUiAddTask({
@@ -159,13 +175,16 @@ export async function createUiAddTask({
         sourceUrl: chosen.sourceUrl,
         libraryName: chosen.libraryName,
         frameworkName: chosen.frameworkName,
+        sourceRoot: chosen.sourceRoot,
         sourceFrameworkRoot: chosen.sourceFrameworkRoot,
         sourceComponentDir: join(chosen.sourceFrameworkRoot, canonicalName),
         outputPath: chosen.outputPath,
+        copyFilesRoot: chosen.copyFilesRoot,
       })
     }
 
     const projectRoot = getProjectRootFromConfigPath(config.path)
+    const changedFilePaths = new Set<string>()
     const summary: UIAddSummary = {
       copied: 0,
       overwritten: 0,
@@ -173,7 +192,7 @@ export async function createUiAddTask({
       missingComponents,
       promptedFrameworkSelections,
     }
-    const componentPackageJsonPaths = new Set<string>()
+    const componentPackageJsonSourcePaths = new Set<string>()
 
     for (const component of resolvedComponents) {
       const sourceFiles = await listFilesRecursive(component.sourceComponentDir)
@@ -192,10 +211,11 @@ export async function createUiAddTask({
         const relativePath = normalizeProjectRelativePath(
           sourcePath.slice(component.sourceComponentDir.length + 1)
         )
-        const destinationPath = join(destinationComponentDir, relativePath)
         if (isComponentPackageJson(relativePath)) {
-          componentPackageJsonPaths.add(destinationPath)
+          componentPackageJsonSourcePaths.add(sourcePath)
+          continue
         }
+        const destinationPath = join(destinationComponentDir, relativePath)
         const sourceFile = Bun.file(sourcePath)
         const destinationFile = Bun.file(destinationPath)
         const destinationExists = await destinationFile.exists()
@@ -233,6 +253,7 @@ export async function createUiAddTask({
 
         await mkdir(dirname(destinationPath), { recursive: true })
         await Bun.write(destinationPath, sourceContent)
+        changedFilePaths.add(destinationPath)
         summary.copied += 1
         if (destinationExists) {
           summary.overwritten += 1
@@ -240,11 +261,26 @@ export async function createUiAddTask({
       }
     }
 
+    const supportFilePaths = await ensureRequiredCopyFiles({
+      projectRoot,
+      resolvedComponents,
+    })
+    for (const path of supportFilePaths) {
+      changedFilePaths.add(path)
+    }
+    summary.copied += supportFilePaths.length
+
     if (summary.copied > 0) {
       await installComponentDependencies({
         config,
         projectRoot,
-        componentPackageJsonPaths: Array.from(componentPackageJsonPaths),
+        componentPackageJsonPaths: Array.from(componentPackageJsonSourcePaths),
+      })
+
+      await runPostAddUpdateStep({
+        postAddUpdateStep: uiConfig.data.postAddUpdateStep,
+        projectRoot,
+        changedFilePaths: Array.from(changedFilePaths),
       })
     }
 
@@ -403,6 +439,8 @@ async function buildFrameworkInstalls(
         frameworkName: framework.name,
         templatePath: framework.templatePath,
         outputPath: framework.outputPath,
+        copyFilesRoot: install.copyFilesRoot,
+        sourceRoot: resolved.sourceRoot,
         sourceFrameworkRoot,
         componentsByLowerName,
       })
@@ -594,6 +632,224 @@ function isComponentPackageJson(path: string): boolean {
   return basename(path) === "package.json"
 }
 
+async function ensureRequiredCopyFiles(input: {
+  projectRoot: string
+  resolvedComponents: UIAddResolvedComponent[]
+}): Promise<string[]> {
+  const frameworkSelections = dedupeFrameworkSelections(
+    input.resolvedComponents
+  )
+  if (frameworkSelections.length === 0) {
+    return []
+  }
+
+  const copiedPaths: string[] = []
+  for (const selection of frameworkSelections) {
+    const libraryConfig = await readLibraryConfig(selection.sourceRoot)
+    if (!libraryConfig?.copyFiles) {
+      continue
+    }
+
+    const sharedEntries = normalizeCopyEntries(libraryConfig.copyFiles.shared)
+    const frameworkEntries = normalizeCopyEntries(
+      libraryConfig.copyFiles[selection.frameworkName]
+    )
+    const requiredShared = sharedEntries.filter((entry) => entry.required)
+    const requiredFramework = frameworkEntries.filter((entry) => entry.required)
+
+    for (const entry of requiredShared) {
+      const sourcePath = await resolveCopyEntrySource({
+        sourceRoot: selection.sourceRoot,
+        sourceFrameworkRoot: selection.sourceFrameworkRoot,
+        src: entry.src,
+        shared: true,
+      })
+
+      if (!sourcePath) {
+        throw new Error(
+          `Missing required shared library file ${entry.src} for ${selection.libraryName}/${selection.frameworkName}`
+        )
+      }
+
+      const destinationRelative = toCopyDestinationRelativePath(
+        selection.copyFilesRoot,
+        entry.dest ?? entry.src
+      )
+      const destinationPath = join(input.projectRoot, destinationRelative)
+      const exists = await Bun.file(destinationPath).exists()
+      if (exists) {
+        continue
+      }
+
+      await mkdir(dirname(destinationPath), { recursive: true })
+      const sourceContent = await Bun.file(sourcePath).arrayBuffer()
+      await Bun.write(destinationPath, sourceContent)
+      copiedPaths.push(destinationPath)
+    }
+
+    for (const entry of requiredFramework) {
+      const sourcePath = await resolveCopyEntrySource({
+        sourceRoot: selection.sourceRoot,
+        sourceFrameworkRoot: selection.sourceFrameworkRoot,
+        src: entry.src,
+        shared: false,
+      })
+
+      if (!sourcePath) {
+        throw new Error(
+          `Missing required framework library file ${entry.src} for ${selection.libraryName}/${selection.frameworkName}`
+        )
+      }
+
+      const destinationRelative = toCopyDestinationRelativePath(
+        selection.copyFilesRoot,
+        entry.dest ?? entry.src
+      )
+      const destinationPath = join(input.projectRoot, destinationRelative)
+      const exists = await Bun.file(destinationPath).exists()
+      if (exists) {
+        continue
+      }
+
+      await mkdir(dirname(destinationPath), { recursive: true })
+      const sourceContent = await Bun.file(sourcePath).arrayBuffer()
+      await Bun.write(destinationPath, sourceContent)
+      copiedPaths.push(destinationPath)
+    }
+  }
+
+  if (copiedPaths.length > 0) {
+    log.info(
+      `Added ${copiedPaths.length} required support file${copiedPaths.length === 1 ? "" : "s"}.`
+    )
+  }
+
+  return copiedPaths
+}
+
+function dedupeFrameworkSelections(
+  components: UIAddResolvedComponent[]
+): Array<{
+  sourceRoot: string
+  sourceFrameworkRoot: string
+  libraryName: string
+  frameworkName: string
+  copyFilesRoot: string
+}> {
+  const map = new Map<
+    string,
+    {
+      sourceRoot: string
+      sourceFrameworkRoot: string
+      libraryName: string
+      frameworkName: string
+      copyFilesRoot: string
+    }
+  >()
+
+  for (const component of components) {
+    const key = [
+      component.sourceRoot,
+      component.sourceFrameworkRoot,
+      component.libraryName,
+      component.frameworkName,
+      component.copyFilesRoot,
+    ].join("::")
+
+    if (!map.has(key)) {
+      map.set(key, {
+        sourceRoot: component.sourceRoot,
+        sourceFrameworkRoot: component.sourceFrameworkRoot,
+        libraryName: component.libraryName,
+        frameworkName: component.frameworkName,
+        copyFilesRoot: component.copyFilesRoot,
+      })
+    }
+  }
+
+  return Array.from(map.values())
+}
+
+async function readLibraryConfig(
+  sourceRoot: string
+): Promise<UILibraryWithCopyFiles | null> {
+  const configPath = join(sourceRoot, "ui.config.ts")
+  const configFile = Bun.file(configPath)
+  if (!(await configFile.exists())) {
+    return null
+  }
+
+  try {
+    const loaded = (await import(configPath)) as {
+      config?: UILibraryWithCopyFiles
+    }
+    return loaded.config ?? null
+  } catch {
+    return null
+  }
+}
+
+function normalizeCopyEntries(entries?: CopyFileEntry[]): Array<{
+  src: string
+  dest?: string
+  required: boolean
+}> {
+  if (!entries || entries.length === 0) {
+    return []
+  }
+
+  return entries.map((entry) => ({
+    src: normalizeProjectRelativePath(entry.src),
+    dest:
+      typeof entry.dest === "string"
+        ? normalizeProjectRelativePath(entry.dest)
+        : undefined,
+    required: entry.required !== false,
+  }))
+}
+
+function toCopyDestinationRelativePath(
+  copyFilesRoot: string,
+  destinationTemplate: string
+): string {
+  const normalizedRoot = normalizeProjectRelativePath(copyFilesRoot)
+  const normalizedDest = normalizeProjectRelativePath(destinationTemplate)
+
+  if (
+    normalizedDest === normalizedRoot ||
+    normalizedDest.startsWith(`${normalizedRoot}/`)
+  ) {
+    return normalizedDest
+  }
+
+  return normalizeProjectRelativePath(
+    join(normalizedRoot, normalizedDest).replace(/\\/g, "/")
+  )
+}
+
+async function resolveCopyEntrySource(input: {
+  sourceRoot: string
+  sourceFrameworkRoot: string
+  src: string
+  shared: boolean
+}): Promise<string | null> {
+  const normalizedSrc = normalizeProjectRelativePath(input.src)
+  const candidates = input.shared
+    ? [
+        join(input.sourceFrameworkRoot, normalizedSrc),
+        join(input.sourceRoot, normalizedSrc),
+      ]
+    : [join(input.sourceFrameworkRoot, normalizedSrc)]
+
+  for (const candidate of candidates) {
+    if (await Bun.file(candidate).exists()) {
+      return candidate
+    }
+  }
+
+  return null
+}
+
 async function installComponentDependencies(input: {
   config: HullaConfig
   projectRoot: string
@@ -762,4 +1018,45 @@ async function runInstallScript(input: {
       `Failed to install ${input.label} (exit code: ${proc.exitCode}).`
     )
   }
+}
+
+async function runPostAddUpdateStep(input: {
+  postAddUpdateStep: UIProjectConfigSchema["postAddUpdateStep"]
+  projectRoot: string
+  changedFilePaths: string[]
+}): Promise<void> {
+  const configuredCommand = input.postAddUpdateStep.trim()
+  if (!configuredCommand || input.changedFilePaths.length === 0) {
+    return
+  }
+
+  const changedProjectRelativeFiles = input.changedFilePaths.map((path) =>
+    normalizePath(relative(input.projectRoot, path))
+  )
+  const filesLabel =
+    changedProjectRelativeFiles.length === 1
+      ? "1 file"
+      : `${changedProjectRelativeFiles.length} files`
+  const escapedFiles = changedProjectRelativeFiles.map(shellEscape).join(" ")
+  const script = configuredCommand.includes("{files}")
+    ? configuredCommand.replaceAll("{files}", escapedFiles)
+    : `${configuredCommand} ${escapedFiles}`
+
+  log.info(`Running post add/update command on ${filesLabel}...`)
+  const proc = Bun.spawn(["sh", "-lc", script], {
+    cwd: input.projectRoot,
+    stdout: "inherit",
+    stderr: "inherit",
+  })
+
+  await proc.exited
+  if (proc.exitCode !== 0) {
+    throw new Error(
+      `Failed to run post add/update command (exit code: ${proc.exitCode}).`
+    )
+  }
+}
+
+function shellEscape(value: string): string {
+  return `'${value.replace(/'/g, `'"'"'`)}'`
 }

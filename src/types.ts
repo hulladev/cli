@@ -130,9 +130,11 @@ export type UIAddResolvedComponent = {
   sourceUrl: string
   libraryName: string
   frameworkName: string
+  sourceRoot: string
   sourceFrameworkRoot: string
   sourceComponentDir: string
   outputPath: string
+  copyFilesRoot: string
 }
 
 export type UIAddFileOperation = {

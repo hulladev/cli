@@ -27,17 +27,25 @@ export const uiInstallSchema = z.object({
   frameworks: z.array(uiInstallFrameworkSchema).default([]),
 })
 
+export const uiPostAddUpdateStepSchema = z
+  .string()
+  .trim()
+  .optional()
+  .default("")
+
 export const UIConfigSchema = z
   .object({
     $schema: z.string().optional(),
     version: z.number().int().positive().optional().default(1),
     sources: z.array(uiSourceSchema).optional().default(defaultUISources),
     installs: z.array(uiInstallSchema).optional().default([]),
+    postAddUpdateStep: uiPostAddUpdateStepSchema,
   })
   .default({
     version: 1,
     sources: defaultUISources,
     installs: [],
+    postAddUpdateStep: "",
   })
 
 export type UIConfigSchemaType = z.infer<typeof UIConfigSchema>
