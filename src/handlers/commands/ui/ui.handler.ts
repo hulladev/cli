@@ -10,6 +10,7 @@ import { framework } from "./ui.framework.handler"
 import { help } from "./ui.help.hander"
 import { init } from "./ui.init.handler"
 import { remove } from "./ui.remove.handler"
+import { yes } from "./ui.yes.handler"
 
 export const ui: HandlerFunction<"commands", "ui"> = async ({
   result,
@@ -37,6 +38,7 @@ export const ui: HandlerFunction<"commands", "ui"> = async ({
     config: hullaConfig,
     handlers: {
       help,
+      yes,
       config,
       framework,
     },

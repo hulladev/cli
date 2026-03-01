@@ -8,10 +8,12 @@ import {
   normalizeProjectRelativePath,
   readUIConfig,
 } from "@/lib/ui/config"
+import { resolveUISource } from "@/lib/ui/source"
 import { autocompleteMultiselect } from "@/prompts/autocompleteMultiselect"
 import { box } from "@/prompts/box"
 import { confirm } from "@/prompts/confirm"
 import { log } from "@/prompts/log"
+import { isPromptNonInteractive } from "@/prompts/runtime"
 import { select } from "@/prompts/select"
 import type {
   HullaConfig,
@@ -113,6 +115,17 @@ export async function createUiAddTask({
       )
     }
 
+    const requestedFromArgs = normalizeComponentInputs(
+      result.arguments.components?.value ?? []
+    )
+    if (isPromptNonInteractive() && requestedFromArgs.length === 0) {
+      return err(
+        new Error(
+          "Prompt required but --yes was used: component input is required. Pass explicit component names, e.g. `hulla ui add --yes --framework react button`."
+        )
+      )
+    }
+
     const requestedComponentInputs = await resolveRequestedComponents({
       result,
       frameworkInstalls,
@@ -150,6 +163,14 @@ export async function createUiAddTask({
       if (byFramework.size === 1) {
         chosen = Array.from(byFramework.values())[0]
       } else {
+        if (isPromptNonInteractive() && !explicitFramework) {
+          return err(
+            new Error(
+              `Prompt required but --yes was used: component ${d.highlight(componentInput)} exists in multiple frameworks. Pass --framework <name>.`
+            )
+          )
+        }
+
         promptedFrameworkSelections += 1
         const selectedFramework = await select<string>({
           message: `Component ${d.highlight(componentInput)} exists in multiple frameworks. Which one should be used?`,
@@ -416,6 +437,7 @@ async function buildFrameworkInstalls(
   config: HullaConfig,
   installs: Awaited<ReturnType<typeof readUIConfig>>["data"]["installs"]
 ): Promise<FrameworkInstall[]> {
+  const projectRoot = getProjectRootFromConfigPath(config.path)
   const cache = await readUICache(config)
   const fetchedRootsBySource = new Map<string, CachedSource>()
   const pendingCacheUpdates = new Map<string, UICacheItem>()
@@ -428,6 +450,7 @@ async function buildFrameworkInstalls(
         framework,
         cache,
         fetchedRootsBySource,
+        projectRoot,
       })
       const sourceFrameworkRoot = resolved.frameworkRoot
       const componentsByLowerName =
@@ -486,6 +509,7 @@ async function resolveFrameworkSourceRoot(input: {
   >["data"]["installs"][number]["frameworks"][number]
   cache: Awaited<ReturnType<typeof readUICache>>
   fetchedRootsBySource: Map<string, CachedSource>
+  projectRoot: string
 }): Promise<{
   frameworkRoot: string
   sourceRoot: string
@@ -493,6 +517,48 @@ async function resolveFrameworkSourceRoot(input: {
   branch: string | undefined
   refreshed: boolean
 }> {
+  const resolvedSource = resolveUISource({
+    source: input.install.sourceUrl,
+    projectRoot: input.projectRoot,
+  })
+
+  if (resolvedSource.kind === "local") {
+    const sourceRoot = resolvedSource.rootDir
+    const sourceExists = await directoryExists(sourceRoot)
+    if (!sourceExists) {
+      throw new Error(
+        `Local UI source path not found: ${d.path(input.install.sourceUrl)} (resolved: ${d.path(sourceRoot)})`
+      )
+    }
+
+    const configPath = join(sourceRoot, "ui.config.ts")
+    const configExists = await Bun.file(configPath).exists()
+    if (!configExists) {
+      throw new Error(
+        `Local UI source is missing ui.config.ts: ${d.path(input.install.sourceUrl)} (expected: ${d.path(configPath)})`
+      )
+    }
+
+    const frameworkRoot = join(
+      sourceRoot,
+      normalizeProjectRelativePath(input.framework.templatePath)
+    )
+    const frameworkExists = await directoryExists(frameworkRoot)
+    if (!frameworkExists) {
+      throw new Error(
+        `Framework template path not found for ${input.install.libraryName}/${input.framework.name}: ${d.path(frameworkRoot)}`
+      )
+    }
+
+    return {
+      frameworkRoot,
+      sourceRoot,
+      commit: undefined,
+      branch: undefined,
+      refreshed: false,
+    }
+  }
+
   const cacheKey = getUILibCacheKey(
     input.install.libraryName,
     input.install.sourceUrl
@@ -535,10 +601,11 @@ async function resolveFrameworkSourceRoot(input: {
     }
   }
 
-  let source = input.fetchedRootsBySource.get(input.install.sourceUrl)
+  const remoteSourceUrl = resolvedSource.sourceUrl
+  let source = input.fetchedRootsBySource.get(remoteSourceUrl)
   if (!source) {
     const fetched = await gittar({
-      url: input.install.sourceUrl,
+      url: remoteSourceUrl,
       update: "commit",
     })
     source = {
@@ -546,7 +613,7 @@ async function resolveFrameworkSourceRoot(input: {
       commit: fetched.commit,
       branch: fetched.branch,
     }
-    input.fetchedRootsBySource.set(input.install.sourceUrl, source)
+    input.fetchedRootsBySource.set(remoteSourceUrl, source)
   }
 
   const frameworkRoot = join(

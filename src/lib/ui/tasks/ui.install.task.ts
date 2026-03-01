@@ -1,11 +1,14 @@
 import { d } from "@/decorators"
 import { getUILibCacheKey, updateUICache } from "@/lib/cache"
+import { directoryExists } from "@/lib/shared/bunUtils"
 import { detectFrameworkDetailed } from "@/lib/shared/detectFramework"
 import {
   defaultUISources,
+  getProjectRootFromConfigPath,
   normalizeProjectRelativePath,
   type UIProjectConfig,
 } from "@/lib/ui/config"
+import { resolveUISource } from "@/lib/ui/source"
 import { log } from "@/prompts/log"
 import { multiselect } from "@/prompts/multiselect"
 import { spinner } from "@/prompts/spinner"
@@ -62,6 +65,7 @@ export type UICopyLibraryContext = {
 }
 
 type FetchedLibrary = {
+  sourceType: "local" | "remote"
   url: string
   rootDir: string
   config: UILibraryWithCopyFiles
@@ -91,15 +95,52 @@ export async function createUiInstallTask({
   installDrafts: UIInstallDraft[]
   copyContexts: UICopyLibraryContext[]
 }> {
+  const projectRoot = getProjectRootFromConfigPath(config.path)
   const libSources =
     uiConfig.sources.length > 0 ? uiConfig.sources : defaultUISources
 
   const s = spinner()
   s.start("Fetching UI Libraries...")
   const libs = await Promise.all(
-    libSources.map(async (url) => {
+    libSources.map(async (source): Promise<FetchedLibrary | null> => {
+      const resolvedSource = resolveUISource({
+        source,
+        projectRoot,
+      })
+
+      if (resolvedSource.kind === "local") {
+        const rootDir = resolvedSource.rootDir
+        const sourceExists = await directoryExists(rootDir)
+        if (!sourceExists) {
+          throw new Error(
+            `Local UI source path not found: ${d.path(source)} (resolved: ${d.path(rootDir)})`
+          )
+        }
+
+        const filePath = join(rootDir, "ui.config.ts")
+        const libConfigFile = Bun.file(filePath)
+        if (!(await libConfigFile.exists())) {
+          throw new Error(
+            `Local UI source is missing ui.config.ts: ${d.path(source)} (expected: ${d.path(filePath)})`
+          )
+        }
+
+        const configContent = (await (
+          await import(filePath)
+        ).config) as UILibraryWithCopyFiles
+
+        return {
+          sourceType: "local",
+          url: source,
+          rootDir,
+          config: configContent,
+          commit: undefined,
+          branch: undefined,
+        }
+      }
+
       const lib = await gittar({
-        url,
+        url: resolvedSource.sourceUrl,
         update: "commit",
       })
       const rootDir = join(lib.outDir, lib.subpath ?? "")
@@ -112,12 +153,13 @@ export async function createUiInstallTask({
         await import(filePath)
       ).config) as UILibraryWithCopyFiles
       return {
-        url,
+        sourceType: "remote",
+        url: resolvedSource.sourceUrl,
         rootDir,
         config: configContent,
         commit: lib.commit,
         branch: lib.branch,
-      } satisfies FetchedLibrary
+      }
     })
   ).then((results) =>
     results.filter((lib): lib is FetchedLibrary => lib !== null)
@@ -233,24 +275,33 @@ export async function createUiInstallTask({
       selectedFrameworkEntries.map((entry) => [entry.name, entry.frameworkPath])
     )
 
-    cacheItems.push({
-      url: lib.url,
-      rootDir: lib.rootDir,
-      commit: lib.commit,
-      branch: lib.branch,
-      config: {
-        name: lib.config.name,
-        url: lib.config.url,
-        author: lib.config.author,
-        version: lib.config.version,
-      },
-      frameworks: selectedFrameworkMap,
-    })
+    if (lib.sourceType === "remote") {
+      cacheItems.push({
+        url: lib.url,
+        rootDir: lib.rootDir,
+        commit: lib.commit,
+        branch: lib.branch,
+        config: {
+          name: lib.config.name,
+          url: lib.config.url,
+          author: lib.config.author,
+          version: lib.config.version,
+        },
+        frameworks: selectedFrameworkMap,
+      })
+    }
 
     const draftFrameworks: UIInstallDraftFramework[] = []
     const copyFrameworks: UICopyFrameworkContext[] = []
 
     for (const framework of selectedFrameworkEntries) {
+      const frameworkExists = await directoryExists(framework.frameworkPath)
+      if (!frameworkExists) {
+        throw new Error(
+          `Framework template path not found for ${lib.config.name}/${framework.name}: ${d.path(framework.frameworkPath)}`
+        )
+      }
+
       const templatePath = normalizeTemplatePath(framework.templatePath)
       const outputPath = normalizeProjectRelativePath(componentsRoot)
       const sharedCopyEntries = normalizeCopyEntries(
@@ -313,15 +364,17 @@ export async function createUiInstallTask({
     })
   }
 
-  await updateUICache(
-    config,
-    Object.fromEntries(
-      cacheItems.map((item) => [
-        getUILibCacheKey(item.config.name, item.url),
-        item,
-      ])
+  if (cacheItems.length > 0) {
+    await updateUICache(
+      config,
+      Object.fromEntries(
+        cacheItems.map((item) => [
+          getUILibCacheKey(item.config.name, item.url),
+          item,
+        ])
+      )
     )
-  )
+  }
 
   return { selectedFrameworks, installDrafts, copyContexts }
 }

@@ -1,6 +1,7 @@
 import { parser } from "@hulla/args"
 import { helpFlag } from "./arguments/flags/help.flag"
 import { versionFlag } from "./arguments/flags/version.flag"
+import { yesFlag } from "./arguments/flags/yes.flag"
 import { configOption } from "./arguments/options/config.option"
 import { init } from "./commands/init.command"
 import { install } from "./commands/install.command"
@@ -12,7 +13,7 @@ export const cli = parser({
     startIndex: 2,
     sharedDash: true,
   },
-  arguments: [versionFlag, helpFlag, configOption],
+  arguments: [versionFlag, helpFlag, yesFlag, configOption],
   commands: [install, init, ui],
 })
 

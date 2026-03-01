@@ -10,11 +10,13 @@ import { install } from "@/handlers/commands/install.handler"
 import { ui } from "@/handlers/commands/ui/ui.handler"
 import { help } from "@/handlers/flags/help.handler"
 import { version } from "@/handlers/flags/version.handler"
+import { yes } from "@/handlers/flags/yes.handler"
 import { config } from "@/handlers/options/config.handler"
 import { executeHandlers } from "@/lib/shared/executeHandlers"
 import { resolve } from "@/lib/shared/resolve"
 import { log } from "@/prompts/log"
 import { outro } from "@/prompts/outro"
+import { configurePromptRuntime } from "@/prompts/runtime"
 import { ParserError } from "@hulla/args"
 import packageJson from "../../package.json"
 import { intro } from "../prompts/intro"
@@ -25,6 +27,10 @@ async function main() {
   try {
     console.log("") // empty line to give some space to std output
     const parserResult = cli.parse(argv)
+    configurePromptRuntime({
+      nonInteractive:
+        parserResult.argv.includes("--yes") || parserResult.argv.includes("-y"),
+    })
     intro(
       `${d.package()} ${d.highlight("[")}v${packageJson.version}${d.highlight("]")} ${d.secondary(
         `[${parserResult.argv.join(" ")}]`
@@ -52,6 +58,7 @@ async function main() {
       handlers: {
         help,
         version,
+        yes,
         config,
       },
     })
