@@ -9,6 +9,7 @@ export interface UIProjectConfigSchema {
   installs: {
     sourceUrl: string
     libraryName: string
+    codeRoot?: string
     componentsRoot: string
     copyFilesRoot: string
     rootTsconfigPath?: string

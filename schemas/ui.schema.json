@@ -48,6 +48,9 @@
           "libraryName": {
             "type": "string"
           },
+          "codeRoot": {
+            "type": "string"
+          },
           "componentsRoot": {
             "type": "string"
           },

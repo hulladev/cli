@@ -6,8 +6,10 @@ import {
   writeUIConfig,
 } from "@/lib/ui/config"
 import { createUiCopyTask } from "@/lib/ui/tasks/ui.copy.task"
+import { createUiDepsTask } from "@/lib/ui/tasks/ui.deps.task"
 import { createUiInstallTask } from "@/lib/ui/tasks/ui.install.task"
 import { createUiTsconfigTask } from "@/lib/ui/tasks/ui.tsconfig.task"
+import { createUiViteTask } from "@/lib/ui/tasks/ui.vite.task"
 import { select } from "@/prompts/select"
 import { text } from "@/prompts/text"
 import type { SubHandlerFunction } from "@/types"
@@ -16,15 +18,29 @@ import { isAbsolute, relative } from "path"
 
 export const init: SubHandlerFunction<"ui", "init"> = async ({ config }) => {
   const loadedUIConfig = await readUIConfig(config)
-  const { selectedFrameworks, installDrafts, copyContexts } =
-    await createUiInstallTask({
-      config,
-      uiConfig: loadedUIConfig.data,
-    })
+  const {
+    selectedFrameworks,
+    installDrafts,
+    copyContexts,
+    sharedDependencies,
+    sharedDevDependencies,
+  } = await createUiInstallTask({
+    config,
+    uiConfig: loadedUIConfig.data,
+  })
 
   const tsconfigSelection = await createUiTsconfigTask({ selectedFrameworks })
+  await createUiViteTask({
+    codeRoots: selectedFrameworks.map((framework) => framework.codeRoot),
+  })
   await createUiCopyTask({ config, copyContexts })
   const projectRoot = getProjectRootFromConfigPath(config.path)
+  await createUiDepsTask({
+    config,
+    projectRoot,
+    dependencies: sharedDependencies,
+    devDependencies: sharedDevDependencies,
+  })
   const normalizedFrameworkTsconfigs = Object.fromEntries(
     Object.entries(tsconfigSelection.frameworkPaths).map(
       ([id, tsconfigPath]) => [
@@ -41,6 +57,7 @@ export const init: SubHandlerFunction<"ui", "init"> = async ({ config }) => {
   const updatedInstalls = installDrafts.map((draft) => ({
     sourceUrl: draft.sourceUrl,
     libraryName: draft.libraryName,
+    codeRoot: draft.codeRoot,
     componentsRoot: draft.componentsRoot,
     copyFilesRoot: draft.copyFilesRoot,
     ...(normalizedRootPath ? { rootTsconfigPath: normalizedRootPath } : {}),

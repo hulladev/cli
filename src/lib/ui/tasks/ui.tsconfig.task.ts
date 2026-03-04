@@ -1,3 +1,4 @@
+import { normalizeProjectRelativePath } from "@/lib/ui/config"
 import { box } from "@/prompts/box"
 import { confirm } from "@/prompts/confirm"
 import { log } from "@/prompts/log"
@@ -89,10 +90,11 @@ export async function createUiTsconfigTask({
       }
     ) as Record<string, unknown>
 
-    working.config = mergeIncludeEntries(
+    const withIncludes = mergeIncludeEntries(
       merged,
       buildFrameworkIncludeEntries(framework)
     )
+    working.config = ensureAliasPath(withIncludes, framework.codeRoot)
   } else {
     const rootPath = await requestTsconfigPath({
       message: "Select root tsconfig.json for project references",
@@ -122,10 +124,11 @@ export async function createUiTsconfigTask({
         { allowBaseUrl }
       ) as Record<string, unknown>
 
-      working.config = mergeIncludeEntries(
+      const withIncludes = mergeIncludeEntries(
         merged,
         buildFrameworkIncludeEntries(framework)
       )
+      working.config = ensureAliasPath(withIncludes, framework.codeRoot)
     }
 
     const rootWorking = await getWorkingTsconfig(workingByPath, rootPath)
@@ -201,15 +204,16 @@ function toIncludePath(path: string): string {
 function buildFrameworkIncludeEntries(
   framework: UISelectedFramework
 ): string[] {
+  const codeRoot = normalizeProjectRelativePath(framework.codeRoot)
   const componentsRoot = resolveComponentsIncludeRoot(framework)
-  const allPaths = [componentsRoot, ...framework.copyFileDestinations]
+  const allPaths = [codeRoot, componentsRoot, ...framework.copyFileDestinations]
   const sharedRoot = findSharedTopLevelRoot(allPaths)
 
   if (sharedRoot) {
     return [toIncludePath(sharedRoot)]
   }
 
-  const includes = [toIncludePath(componentsRoot)]
+  const includes = [toIncludePath(codeRoot), toIncludePath(componentsRoot)]
   for (const destination of framework.copyFileDestinations) {
     includes.push(toIncludePath(destination))
   }
@@ -275,10 +279,10 @@ function mergeIncludeEntries(
     : []
 
   const result = [...existing]
-  const seen = new Set(existing.map((value) => normalizePath(value)))
+  const seen = new Set(existing.map(toCanonicalIncludeKey))
 
   for (const incoming of normalizedIncoming) {
-    const normalized = normalizePath(incoming)
+    const normalized = toCanonicalIncludeKey(incoming)
     if (seen.has(normalized)) {
       continue
     }
@@ -292,16 +296,75 @@ function mergeIncludeEntries(
   }
 }
 
+function toCanonicalIncludeKey(value: string): string {
+  const normalized = normalizePath(value).trim().replace(/\/+$/, "")
+  const withoutDotPrefix = normalized.replace(/^\.\//, "")
+  return withoutDotPrefix.length > 0 ? withoutDotPrefix : "."
+}
+
+function ensureAliasPath(
+  config: Record<string, unknown>,
+  rootDir: string
+): Record<string, unknown> {
+  const normalizedRoot = normalizeProjectRelativePath(rootDir)
+  const aliasTarget =
+    normalizedRoot === "." ? "./*" : `./${normalizedRoot.replace(/\/+$/, "")}/*`
+
+  const currentCompilerOptions = isRecord(config.compilerOptions)
+    ? config.compilerOptions
+    : {}
+  const currentPaths = isRecord(currentCompilerOptions.paths)
+    ? currentCompilerOptions.paths
+    : {}
+  const currentAlias = Array.isArray(currentPaths["@/*"])
+    ? currentPaths["@/*"].filter(
+        (value): value is string => typeof value === "string"
+      )
+    : []
+
+  if (currentAlias.length > 0 && !isProjectRootAlias(currentAlias)) {
+    return config
+  }
+
+  return {
+    ...config,
+    compilerOptions: {
+      ...currentCompilerOptions,
+      paths: {
+        ...currentPaths,
+        "@/*": [aliasTarget],
+      },
+    },
+  }
+}
+
+function isProjectRootAlias(values: string[]): boolean {
+  return values.every((value) => {
+    const normalized = normalizePath(value).trim()
+    return normalized === "./*" || normalized === "*" || normalized === "./"
+  })
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value)
+}
+
 async function requestTsconfigPath(input: {
   message: string
   existingTsconfigs: string[]
   defaultNewPath: string
 }): Promise<string> {
   const cwd = process.cwd()
+  const recommendedPath = pickRecommendedTsconfigPath(input.existingTsconfigs)
   const options = [
     ...input.existingTsconfigs.map((path, index) => ({
       label: toRelativeDisplay(path, cwd),
-      hint: index === 0 ? "Recommended" : undefined,
+      hint:
+        path === recommendedPath
+          ? "Recommended"
+          : index === 0 && !recommendedPath
+            ? "Detected"
+            : undefined,
       value: path,
     })),
     {
@@ -319,7 +382,7 @@ async function requestTsconfigPath(input: {
   const selected = await select<string>({
     message: input.message,
     options,
-    initialValue: input.existingTsconfigs[0] ?? CREATE_NEW,
+    initialValue: recommendedPath ?? input.existingTsconfigs[0] ?? CREATE_NEW,
   })
 
   if (selected === CUSTOM_PATH) {
@@ -331,6 +394,30 @@ async function requestTsconfigPath(input: {
   }
 
   return selected
+}
+
+function pickRecommendedTsconfigPath(paths: string[]): string | null {
+  if (paths.length === 0) {
+    return null
+  }
+
+  const priorities = [
+    /(^|\/)tsconfig\.app\.json$/i,
+    /(^|\/)tsconfig\.json$/i,
+    /(^|\/)tsconfig\.base\.json$/i,
+  ]
+
+  for (const priority of priorities) {
+    const match = paths.find((path) => priority.test(normalizePath(path)))
+    if (match) {
+      return match
+    }
+  }
+
+  const nonNode = paths.find(
+    (path) => !/(^|\/)tsconfig\.node\.json$/i.test(normalizePath(path))
+  )
+  return nonNode ?? paths[0]
 }
 
 async function requestCustomExistingPath(): Promise<string> {

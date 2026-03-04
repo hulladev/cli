@@ -30,6 +30,13 @@ import type { UICacheItem } from "schemas/hulla.schema"
 import type { UIProjectConfigSchema } from "schemas/ui.types"
 import { createUnifiedDiff } from "./tsconfig/diff"
 
+type AliasRewriteMapping = {
+  from: string
+  to: string
+}
+
+const REWRITE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx"])
+
 type CreateUiAddTaskInput = {
   config: HullaConfig
   parserResult: ParserResult
@@ -42,6 +49,7 @@ type FrameworkInstall = {
   frameworkName: string
   templatePath: string
   outputPath: string
+  codeRoot: string
   copyFilesRoot: string
   sourceRoot: string
   sourceFrameworkRoot: string
@@ -200,12 +208,14 @@ export async function createUiAddTask({
         sourceFrameworkRoot: chosen.sourceFrameworkRoot,
         sourceComponentDir: join(chosen.sourceFrameworkRoot, canonicalName),
         outputPath: chosen.outputPath,
+        codeRoot: chosen.codeRoot,
         copyFilesRoot: chosen.copyFilesRoot,
       })
     }
 
     const projectRoot = getProjectRootFromConfigPath(config.path)
     const changedFilePaths = new Set<string>()
+    const aliasMappingsCache = new Map<string, AliasRewriteMapping[]>()
     const summary: UIAddSummary = {
       copied: 0,
       overwritten: 0,
@@ -240,11 +250,25 @@ export async function createUiAddTask({
         const sourceFile = Bun.file(sourcePath)
         const destinationFile = Bun.file(destinationPath)
         const destinationExists = await destinationFile.exists()
-        const sourceContent = await sourceFile.arrayBuffer()
+        const shouldRewrite = isRewriteCandidate(relativePath)
+        let sourceContent: ArrayBuffer | string
+        if (shouldRewrite) {
+          const sourceText = await sourceFile.text()
+          const mappings = await resolveAliasMappingsForComponent({
+            component,
+            cache: aliasMappingsCache,
+          })
+          sourceContent = rewriteMappedImports(sourceText, mappings)
+        } else {
+          sourceContent = await sourceFile.arrayBuffer()
+        }
 
         if (destinationExists) {
           const beforeText = await destinationFile.text()
-          const afterText = await sourceFile.text()
+          const afterText =
+            typeof sourceContent === "string"
+              ? sourceContent
+              : await sourceFile.text()
           const patch: TsconfigPatchPlan = {
             targetPath: destinationPath,
             beforeText,
@@ -338,6 +362,162 @@ export async function createUiAddTask({
   } catch (error) {
     return err(error as Error)
   }
+}
+
+function isRewriteCandidate(path: string): boolean {
+  for (const extension of REWRITE_EXTENSIONS) {
+    if (path.endsWith(extension)) {
+      return true
+    }
+  }
+  return false
+}
+
+async function resolveAliasMappingsForComponent(input: {
+  component: UIAddResolvedComponent
+  cache: Map<string, AliasRewriteMapping[]>
+}): Promise<AliasRewriteMapping[]> {
+  const key = [
+    input.component.sourceRoot,
+    input.component.frameworkName,
+    input.component.copyFilesRoot,
+    input.component.codeRoot,
+  ].join("::")
+
+  const cached = input.cache.get(key)
+  if (cached) {
+    return cached
+  }
+
+  const config = await readLibraryConfig(input.component.sourceRoot)
+  if (!config?.copyFiles) {
+    input.cache.set(key, [])
+    return []
+  }
+
+  const entries = [
+    ...normalizeCopyEntries(config.copyFiles.shared),
+    ...normalizeCopyEntries(config.copyFiles[input.component.frameworkName]),
+  ]
+  const mappings: AliasRewriteMapping[] = []
+
+  for (const entry of entries) {
+    const template = entry.dest ?? entry.src
+    const fromAlias = toAliasPathFromTemplate(template)
+    const destinationRelative = toCopyDestinationRelativePath(
+      input.component.copyFilesRoot,
+      template
+    )
+    const toAlias = toAliasPathFromDestination(
+      destinationRelative,
+      input.component.codeRoot
+    )
+
+    if (!fromAlias || !toAlias) {
+      continue
+    }
+
+    const from = `@/${fromAlias}`
+    const to = `@/${toAlias}`
+    if (from === to) {
+      continue
+    }
+    mappings.push({ from, to })
+  }
+
+  const unique = new Map<string, AliasRewriteMapping>()
+  for (const mapping of mappings) {
+    unique.set(`${mapping.from}->${mapping.to}`, mapping)
+  }
+
+  const result = Array.from(unique.values()).sort(
+    (a, b) => b.from.length - a.from.length
+  )
+  input.cache.set(key, result)
+  return result
+}
+
+function toAliasPathFromTemplate(template: string): string {
+  const normalized = normalizeProjectRelativePath(template)
+  const withoutSrc =
+    normalized === "src"
+      ? ""
+      : normalized.startsWith("src/")
+        ? normalized.slice("src/".length)
+        : normalized
+
+  return stripKnownExtension(withoutSrc)
+}
+
+function toAliasPathFromDestination(
+  destinationRelative: string,
+  codeRoot: string
+): string | null {
+  const normalizedDestination = normalizePath(
+    normalizeProjectRelativePath(destinationRelative)
+  )
+  const normalizedCodeRoot = normalizePath(
+    normalizeProjectRelativePath(codeRoot)
+  )
+
+  const relativePath =
+    normalizedCodeRoot === "."
+      ? normalizedDestination
+      : normalizePath(relative(normalizedCodeRoot, normalizedDestination))
+
+  if (relativePath.startsWith("..")) {
+    return null
+  }
+
+  const normalizedRelative = normalizeProjectRelativePath(relativePath)
+  return stripKnownExtension(normalizedRelative)
+}
+
+function stripKnownExtension(path: string): string {
+  return path.replace(/\.(ts|tsx|js|jsx|mjs|cjs)$/i, "")
+}
+
+function rewriteMappedImports(
+  content: string,
+  mappings: AliasRewriteMapping[]
+): string {
+  if (mappings.length === 0) {
+    return content
+  }
+
+  const rewriteSpecifier = (specifier: string): string => {
+    for (const mapping of mappings) {
+      if (specifier === mapping.from) {
+        return mapping.to
+      }
+      if (specifier.startsWith(`${mapping.from}/`)) {
+        return `${mapping.to}${specifier.slice(mapping.from.length)}`
+      }
+    }
+    return specifier
+  }
+
+  const rewrittenStatic = content.replace(
+    /\b(import|export)\s+[^\n;]*?\sfrom\s*(["'])([^"']+)\2/g,
+    (full, _keyword, quote, specifier) => {
+      const rewritten = rewriteSpecifier(specifier)
+      return full.replace(
+        `${quote}${specifier}${quote}`,
+        `${quote}${rewritten}${quote}`
+      )
+    }
+  )
+
+  return rewrittenStatic.replace(
+    /\bimport\s*\(\s*(["'])([^"']+)\1\s*\)/g,
+    (full, quote, specifier) => {
+      const rewritten = rewriteSpecifier(specifier)
+      return full.replace(
+        `${quote}${specifier}${quote}`,
+        `${quote}${rewritten}${quote}`
+      )
+    }
+  )
 }
 
 function resolveExplicitFramework(input: {
@@ -462,6 +642,7 @@ async function buildFrameworkInstalls(
         frameworkName: framework.name,
         templatePath: framework.templatePath,
         outputPath: framework.outputPath,
+        codeRoot: resolveInstallCodeRoot(install),
         copyFilesRoot: install.copyFilesRoot,
         sourceRoot: resolved.sourceRoot,
         sourceFrameworkRoot,
@@ -882,6 +1063,19 @@ function toCopyDestinationRelativePath(
   const normalizedRoot = normalizeProjectRelativePath(copyFilesRoot)
   const normalizedDest = normalizeProjectRelativePath(destinationTemplate)
 
+  if (normalizedDest === "src") {
+    return normalizedRoot
+  }
+
+  if (normalizedDest.startsWith("src/")) {
+    return normalizeProjectRelativePath(
+      join(normalizedRoot, normalizedDest.slice("src/".length)).replace(
+        /\\/g,
+        "/"
+      )
+    )
+  }
+
   if (
     normalizedDest === normalizedRoot ||
     normalizedDest.startsWith(`${normalizedRoot}/`)
@@ -892,6 +1086,25 @@ function toCopyDestinationRelativePath(
   return normalizeProjectRelativePath(
     join(normalizedRoot, normalizedDest).replace(/\\/g, "/")
   )
+}
+
+function resolveInstallCodeRoot(
+  install: UIProjectConfigSchema["installs"][number]
+): string {
+  const maybeCodeRoot = (install as Record<string, unknown>).codeRoot
+  if (typeof maybeCodeRoot === "string" && maybeCodeRoot.trim().length > 0) {
+    return normalizeProjectRelativePath(maybeCodeRoot)
+  }
+
+  const normalizedComponents = normalizeProjectRelativePath(
+    install.componentsRoot
+  )
+  if (normalizedComponents === ".") {
+    return "src"
+  }
+
+  const [firstSegment] = normalizedComponents.split("/")
+  return firstSegment || "src"
 }
 
 async function resolveCopyEntrySource(input: {

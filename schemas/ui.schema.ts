@@ -21,6 +21,7 @@ export const uiInstallFrameworkSchema = z.object({
 export const uiInstallSchema = z.object({
   sourceUrl: z.string(),
   libraryName: z.string(),
+  codeRoot: z.string().optional(),
   componentsRoot: z.string(),
   copyFilesRoot: z.string(),
   rootTsconfigPath: z.string().optional(),

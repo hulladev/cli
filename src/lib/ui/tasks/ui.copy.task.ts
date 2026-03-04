@@ -388,6 +388,16 @@ function remapFirstSegment(
   const normalizedDest = normalizeProjectRelativePath(destTemplate)
   const normalizedRoot = normalizeProjectRelativePath(copyFilesRoot)
 
+  if (normalizedDest === "src") {
+    return normalizedRoot
+  }
+
+  if (normalizedDest.startsWith("src/")) {
+    return normalizeProjectRelativePath(
+      posix.join(normalizedRoot, normalizedDest.slice("src/".length))
+    )
+  }
+
   if (
     normalizedDest === normalizedRoot ||
     normalizedDest.startsWith(`${normalizedRoot}/`)

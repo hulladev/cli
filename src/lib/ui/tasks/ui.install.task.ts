@@ -9,14 +9,19 @@ import {
   type UIProjectConfig,
 } from "@/lib/ui/config"
 import { resolveUISource } from "@/lib/ui/source"
+import { box } from "@/prompts/box"
+import { confirm } from "@/prompts/confirm"
 import { log } from "@/prompts/log"
 import { multiselect } from "@/prompts/multiselect"
+import { path } from "@/prompts/path"
+import { select } from "@/prompts/select"
 import { spinner } from "@/prompts/spinner"
-import { text } from "@/prompts/text"
 import type { HullaConfig, UISelectedFramework } from "@/types"
 import { keys } from "@/utils/objects"
 import gittar from "@hulla/gittar"
-import { join, posix } from "path"
+import { existsSync, lstatSync } from "node:fs"
+import { mkdir } from "node:fs/promises"
+import { isAbsolute, join, posix, resolve } from "path"
 import type { UICacheItem } from "schemas/hulla.schema"
 
 type CreateUiInstallTaskInput = {
@@ -34,6 +39,7 @@ export type UIInstallDraftFramework = {
 export type UIInstallDraft = {
   sourceUrl: string
   libraryName: string
+  codeRoot: string
   componentsRoot: string
   copyFilesRoot: string
   frameworks: UIInstallDraftFramework[]
@@ -94,6 +100,8 @@ export async function createUiInstallTask({
   selectedFrameworks: UISelectedFramework[]
   installDrafts: UIInstallDraft[]
   copyContexts: UICopyLibraryContext[]
+  sharedDependencies: string[]
+  sharedDevDependencies: string[]
 }> {
   const projectRoot = getProjectRootFromConfigPath(config.path)
   const libSources =
@@ -174,6 +182,8 @@ export async function createUiInstallTask({
       selectedFrameworks: [],
       installDrafts: [],
       copyContexts: [],
+      sharedDependencies: [],
+      sharedDevDependencies: [],
     }
   }
 
@@ -205,6 +215,18 @@ export async function createUiInstallTask({
   const installDrafts: UIInstallDraft[] = []
   const selectedFrameworks: UISelectedFramework[] = []
   const copyContexts: UICopyLibraryContext[] = []
+  const sharedDependencies = new Map<string, string>()
+  const sharedDevDependencies = new Map<string, string>()
+
+  const initialCodeRoot = await resolveInitialCodeRoot({
+    projectRoot,
+    uiConfig,
+  })
+  let codeRoot = await requestProjectPath({
+    message: "Code directory root for @/ alias imports:",
+    initialValue: initialCodeRoot,
+    projectRoot,
+  })
 
   for (const lib of selectedLibs) {
     const frameworkKeys = keys(lib.config.frameworks)
@@ -252,24 +274,33 @@ export async function createUiInstallTask({
     const existingInstall = uiConfig.installs.find(
       (install) => install.sourceUrl === lib.url
     )
-    const componentsRoot = await requestProjectPath({
-      message: `Output directory for components from ${d.highlight(lib.config.name)}:`,
-      initialValue: existingInstall?.componentsRoot ?? "src/components",
-      placeholder: "src/components",
+    const pathSelection = await requestComponentsRoot({
+      libraryName: lib.config.name,
+      codeRoot,
+      projectRoot,
+      initialValue: existingInstall?.componentsRoot,
     })
+    codeRoot = pathSelection.codeRoot
+    const componentsRoot = pathSelection.componentsRoot
 
     const hasCopyFiles = hasCopyFileEntries(
       lib.config,
       selectedFrameworkEntries.map(({ name }) => name)
     )
-    const copyFilesRoot = hasCopyFiles
-      ? await requestProjectPath({
-          message: `Output directory for copied library files from ${d.highlight(lib.config.name)}:`,
-          initialValue:
-            existingInstall?.copyFilesRoot ?? posix.dirname(componentsRoot),
-          placeholder: posix.dirname(componentsRoot),
+    const copySelection = hasCopyFiles
+      ? await requestCopyFilesPlan({
+          libraryName: lib.config.name,
+          config: lib.config,
+          selectedFrameworkEntries,
+          codeRoot,
+          initialCopyFilesRoot: existingInstall?.copyFilesRoot,
+          projectRoot,
         })
-      : posix.dirname(componentsRoot)
+      : {
+          copyFilesRoot: codeRoot,
+          copyNow: true,
+        }
+    const copyFilesRoot = copySelection.copyFilesRoot
 
     const selectedFrameworkMap = Object.fromEntries(
       selectedFrameworkEntries.map((entry) => [entry.name, entry.frameworkPath])
@@ -304,12 +335,29 @@ export async function createUiInstallTask({
 
       const templatePath = normalizeTemplatePath(framework.templatePath)
       const outputPath = normalizeProjectRelativePath(componentsRoot)
-      const sharedCopyEntries = normalizeCopyEntries(
-        lib.config.copyFiles?.shared
+      const frameworkPackageJson = await readFrameworkPackageJson(
+        framework.frameworkPath
       )
-      const frameworkCopyEntries = normalizeCopyEntries(
-        lib.config.copyFiles?.[framework.name]
-      )
+      for (const [name, version] of Object.entries(
+        frameworkPackageJson?.dependencies ?? {}
+      )) {
+        if (!sharedDependencies.has(name)) {
+          sharedDependencies.set(name, version)
+        }
+      }
+      for (const [name, version] of Object.entries(
+        frameworkPackageJson?.devDependencies ?? {}
+      )) {
+        if (!sharedDevDependencies.has(name)) {
+          sharedDevDependencies.set(name, version)
+        }
+      }
+      const sharedCopyEntries = copySelection.copyNow
+        ? normalizeCopyEntries(lib.config.copyFiles?.shared)
+        : []
+      const frameworkCopyEntries = copySelection.copyNow
+        ? normalizeCopyEntries(lib.config.copyFiles?.[framework.name])
+        : []
       const allCopyEntries = [...sharedCopyEntries, ...frameworkCopyEntries]
       const frameworkCopyDestinations = getCopyDestinations({
         copyFiles: allCopyEntries,
@@ -330,6 +378,7 @@ export async function createUiInstallTask({
         sourceUrl: lib.url,
         libraryName: lib.config.name,
         name: framework.name,
+        codeRoot,
         templatePath,
         templateTsconfigPath: join(framework.frameworkPath, "tsconfig.json"),
         outputPath,
@@ -348,6 +397,7 @@ export async function createUiInstallTask({
     installDrafts.push({
       sourceUrl: lib.url,
       libraryName: lib.config.name,
+      codeRoot,
       componentsRoot,
       copyFilesRoot,
       frameworks: draftFrameworks,
@@ -359,9 +409,17 @@ export async function createUiInstallTask({
       rootDir: lib.rootDir,
       componentsRoot,
       copyFilesRoot,
-      sharedCopyEntries: normalizeCopyEntries(lib.config.copyFiles?.shared),
+      sharedCopyEntries: copySelection.copyNow
+        ? normalizeCopyEntries(lib.config.copyFiles?.shared)
+        : [],
       frameworks: copyFrameworks,
     })
+
+    if (!copySelection.copyNow) {
+      log.warn(
+        `Skipped copying library files for ${d.highlight(lib.config.name)}. You can run ui init again later after choosing an output path.`
+      )
+    }
   }
 
   if (cacheItems.length > 0) {
@@ -376,25 +434,277 @@ export async function createUiInstallTask({
     )
   }
 
-  return { selectedFrameworks, installDrafts, copyContexts }
+  const sharedDependencyEntries = Array.from(sharedDependencies.entries()).map(
+    ([name, version]) => formatDependencySpecifier(name, version)
+  )
+  const sharedDevDependencyEntries = Array.from(sharedDevDependencies.entries())
+    .filter(([name]) => !sharedDependencies.has(name))
+    .map(([name, version]) => formatDependencySpecifier(name, version))
+
+  return {
+    selectedFrameworks,
+    installDrafts,
+    copyContexts,
+    sharedDependencies: sharedDependencyEntries,
+    sharedDevDependencies: sharedDevDependencyEntries,
+  }
+}
+
+async function requestComponentsRoot(input: {
+  libraryName: string
+  codeRoot: string
+  projectRoot: string
+  initialValue?: string
+}): Promise<{ componentsRoot: string; codeRoot: string }> {
+  let currentCodeRoot = input.codeRoot
+
+  while (true) {
+    const preferredDefault = normalizeProjectRelativePath(
+      posix.join(currentCodeRoot, "components")
+    )
+    const initialValue = input.initialValue ?? preferredDefault
+
+    const componentsRoot = await requestProjectPath({
+      message: `Output directory for components from ${d.highlight(input.libraryName)}:`,
+      initialValue,
+      projectRoot: input.projectRoot,
+      createIfMissing: true,
+      createLabel: "components directory",
+    })
+
+    if (isPathWithinRoot(componentsRoot, currentCodeRoot)) {
+      return {
+        componentsRoot,
+        codeRoot: currentCodeRoot,
+      }
+    }
+
+    log.error(
+      `Components path ${d.path(componentsRoot)} must be inside code root ${d.path(currentCodeRoot)}.`
+    )
+
+    const nextStep = await select<"retry-components" | "change-root">({
+      message: "Fix components path or change code root?",
+      initialValue: "retry-components",
+      options: [
+        {
+          label: "Re-enter components path",
+          value: "retry-components",
+        },
+        {
+          label: "Change code root",
+          value: "change-root",
+        },
+      ],
+    })
+
+    if (nextStep === "change-root") {
+      currentCodeRoot = await requestProjectPath({
+        message: "Code directory root for @/ alias imports:",
+        initialValue: currentCodeRoot,
+        projectRoot: input.projectRoot,
+        createIfMissing: true,
+        createLabel: "code root directory",
+      })
+      input.initialValue = undefined
+    }
+  }
 }
 
 async function requestProjectPath(input: {
   message: string
   initialValue: string
-  placeholder: string
+  projectRoot: string
+  createIfMissing?: boolean
+  createLabel?: string
 }): Promise<string> {
-  const result = await text({
+  const result = await path({
     message: input.message,
+    directory: true,
     initialValue: input.initialValue,
-    placeholder: input.placeholder,
     validate: (value) => {
       const normalized = normalizeProjectRelativePath(value ?? "")
-      return normalized.length > 0 ? undefined : "Path is required"
+      if (normalized.length === 0) {
+        return "Path is required"
+      }
+
+      if (isAbsolute(normalized)) {
+        return "Use a project-relative path"
+      }
+
+      const pathOnDisk = resolve(input.projectRoot, normalized)
+      if (existsSync(pathOnDisk)) {
+        try {
+          const stats = lstatSync(pathOnDisk)
+          if (!stats.isDirectory()) {
+            return "Please choose a directory path"
+          }
+        } catch {
+          return "Invalid path"
+        }
+      }
+
+      return undefined
     },
   })
+  const normalized = normalizeProjectRelativePath(result)
+  const pathOnDisk = resolve(input.projectRoot, normalized)
 
-  return normalizeProjectRelativePath(result)
+  if (input.createIfMissing && !existsSync(pathOnDisk)) {
+    const shouldCreate = await confirm({
+      message: `${input.createLabel ?? "Directory"} ${d.path(normalized)} does not exist. Create it now?`,
+      initialValue: true,
+    })
+
+    if (shouldCreate) {
+      await mkdir(pathOnDisk, { recursive: true })
+      log.info(
+        `Created ${input.createLabel ?? "directory"} ${d.path(normalized)}.`
+      )
+    }
+  }
+
+  return normalized
+}
+
+async function requestCopyFilesPlan(input: {
+  libraryName: string
+  config: UILibraryWithCopyFiles
+  selectedFrameworkEntries: Array<{
+    name: string
+    templatePath: string
+    frameworkPath: string
+  }>
+  codeRoot: string
+  initialCopyFilesRoot?: string
+  projectRoot: string
+}): Promise<{ copyFilesRoot: string; copyNow: boolean }> {
+  let copyFilesRoot = normalizeProjectRelativePath(
+    input.initialCopyFilesRoot ?? input.codeRoot
+  )
+
+  while (true) {
+    const previewDestinations = collectCopyDestinationPreview({
+      config: input.config,
+      frameworkNames: input.selectedFrameworkEntries.map((entry) => entry.name),
+      copyFilesRoot,
+    })
+
+    const lines = [
+      `${d.highlight("Library:")} ${input.libraryName}`,
+      `${d.highlight("Root replacing src/:")} ${d.path(copyFilesRoot)}`,
+      "",
+      d.highlight("Files to be copied:"),
+      ...previewDestinations,
+    ]
+    box(lines.join("\n"), "Copied library files")
+
+    const approved = await confirm({
+      message: "Are you happy with these copied file paths?",
+      initialValue: true,
+    })
+    if (approved) {
+      const finalRoot = await ensureDirectoryIfMissing({
+        projectRoot: input.projectRoot,
+        projectRelativePath: copyFilesRoot,
+        createLabel: "copied files directory",
+      })
+      return {
+        copyFilesRoot: finalRoot,
+        copyNow: true,
+      }
+    }
+
+    const nextStep = await select<"different-path" | "later">({
+      message: "What would you like to do?",
+      initialValue: "different-path",
+      options: [
+        {
+          label: "Select different path",
+          value: "different-path",
+        },
+        {
+          label: "I'll do it later",
+          value: "later",
+        },
+      ],
+    })
+
+    if (nextStep === "later") {
+      return {
+        copyFilesRoot,
+        copyNow: false,
+      }
+    }
+
+    copyFilesRoot = await requestProjectPath({
+      message: `Output directory for copied library files from ${d.highlight(input.libraryName)}:`,
+      initialValue: copyFilesRoot,
+      projectRoot: input.projectRoot,
+      createIfMissing: false,
+    })
+  }
+}
+
+function collectCopyDestinationPreview(input: {
+  config: UILibraryWithCopyFiles
+  frameworkNames: string[]
+  copyFilesRoot: string
+}): string[] {
+  const destinations = new Set<string>()
+
+  for (const entry of normalizeCopyEntries(input.config.copyFiles?.shared)) {
+    const target = entry.dest ?? entry.src
+    destinations.add(mapCopyDestination(target, input.copyFilesRoot))
+  }
+
+  for (const frameworkName of input.frameworkNames) {
+    for (const entry of normalizeCopyEntries(
+      input.config.copyFiles?.[frameworkName]
+    )) {
+      const target = entry.dest ?? entry.src
+      destinations.add(mapCopyDestination(target, input.copyFilesRoot))
+    }
+  }
+
+  const sorted = Array.from(destinations).sort()
+  if (sorted.length === 0) {
+    return [d.secondary("  (no files)")]
+  }
+
+  const maxPreview = 10
+  const preview = sorted
+    .slice(0, maxPreview)
+    .map((value) => `  - ${d.path(value)}`)
+  if (sorted.length > maxPreview) {
+    preview.push(d.secondary(`  ...and ${sorted.length - maxPreview} more`))
+  }
+  return preview
+}
+
+async function ensureDirectoryIfMissing(input: {
+  projectRoot: string
+  projectRelativePath: string
+  createLabel: string
+}): Promise<string> {
+  const normalized = normalizeProjectRelativePath(input.projectRelativePath)
+  const fullPath = resolve(input.projectRoot, normalized)
+  if (existsSync(fullPath)) {
+    return normalized
+  }
+
+  const shouldCreate = await confirm({
+    message: `${input.createLabel} ${d.path(normalized)} does not exist. Create it now?`,
+    initialValue: true,
+  })
+
+  if (!shouldCreate) {
+    return normalized
+  }
+
+  await mkdir(fullPath, { recursive: true })
+  log.info(`Created ${input.createLabel} ${d.path(normalized)}.`)
+  return normalized
 }
 
 function hasCopyFileEntries(
@@ -418,10 +728,62 @@ function getCopyDestinations(input: {
 }): string[] {
   return input.copyFiles.map((file) => {
     const targetPath = file.dest ?? file.src
-    return normalizeProjectRelativePath(
-      posix.join(input.copyFilesRoot, targetPath)
-    )
+    return mapCopyDestination(targetPath, input.copyFilesRoot)
   })
+}
+
+function mapCopyDestination(
+  destTemplate: string,
+  copyFilesRoot: string
+): string {
+  const normalizedDest = normalizeProjectRelativePath(destTemplate)
+  const normalizedRoot = normalizeProjectRelativePath(copyFilesRoot)
+
+  if (normalizedDest === "src") {
+    return normalizedRoot
+  }
+
+  if (normalizedDest.startsWith("src/")) {
+    return normalizeProjectRelativePath(
+      posix.join(normalizedRoot, normalizedDest.slice("src/".length))
+    )
+  }
+
+  if (
+    normalizedDest === normalizedRoot ||
+    normalizedDest.startsWith(`${normalizedRoot}/`)
+  ) {
+    return normalizedDest
+  }
+
+  return normalizeProjectRelativePath(
+    posix.join(normalizedRoot, normalizedDest)
+  )
+}
+
+type FrameworkPackageJson = {
+  dependencies?: Record<string, string>
+  devDependencies?: Record<string, string>
+}
+
+async function readFrameworkPackageJson(
+  frameworkPath: string
+): Promise<FrameworkPackageJson | null> {
+  const packageJsonPath = join(frameworkPath, "package.json")
+  const packageFile = Bun.file(packageJsonPath)
+  if (!(await packageFile.exists())) {
+    return null
+  }
+
+  try {
+    return (await packageFile.json()) as FrameworkPackageJson
+  } catch {
+    return null
+  }
+}
+
+function formatDependencySpecifier(name: string, version: string): string {
+  return version === "*" ? name : `${name}@${version}`
 }
 
 function normalizeCopyEntries(entries?: UICopyEntry[]): UICopyEntry[] {
@@ -441,4 +803,96 @@ function normalizeCopyEntries(entries?: UICopyEntry[]): UICopyEntry[] {
 
 function normalizeTemplatePath(value: string): string {
   return normalizeProjectRelativePath(value)
+}
+
+function isPathWithinRoot(path: string, root: string): boolean {
+  const normalizedPath = normalizeProjectRelativePath(path)
+  const normalizedRoot = normalizeProjectRelativePath(root)
+
+  if (normalizedRoot === ".") {
+    return true
+  }
+
+  return (
+    normalizedPath === normalizedRoot ||
+    normalizedPath.startsWith(`${normalizedRoot}/`)
+  )
+}
+
+async function resolveInitialCodeRoot(input: {
+  projectRoot: string
+  uiConfig: UIProjectConfig
+}): Promise<string> {
+  const existingRoot = findExistingCodeRoot(input.uiConfig)
+  if (existingRoot) {
+    return existingRoot
+  }
+
+  const inferredRoot = await inferCodeRootFromTsconfig(input.projectRoot)
+  if (inferredRoot) {
+    return inferredRoot
+  }
+
+  return "src"
+}
+
+function findExistingCodeRoot(uiConfig: UIProjectConfig): string | null {
+  if (uiConfig.installs.length === 0) {
+    return null
+  }
+
+  const firstComponentsRoot = normalizeProjectRelativePath(
+    uiConfig.installs[0]?.componentsRoot ?? ""
+  )
+  if (firstComponentsRoot === ".") {
+    return null
+  }
+
+  const segments = firstComponentsRoot.split("/")
+  if (segments.length === 0 || !segments[0]) {
+    return null
+  }
+
+  return segments[0]
+}
+
+async function inferCodeRootFromTsconfig(
+  projectRoot: string
+): Promise<string | null> {
+  const tsconfigPath = join(projectRoot, "tsconfig.json")
+  const file = Bun.file(tsconfigPath)
+
+  try {
+    const raw = await file.text()
+    const parsed = JSON.parse(raw) as {
+      include?: unknown
+    }
+    if (!Array.isArray(parsed.include)) {
+      return null
+    }
+
+    for (const entry of parsed.include) {
+      if (typeof entry !== "string") {
+        continue
+      }
+
+      const normalized = normalizeProjectRelativePath(entry)
+      if (normalized === "src" || normalized === "src/**") {
+        return "src"
+      }
+
+      if (normalized === ".") {
+        continue
+      }
+
+      const [segment] = normalized.split("/")
+      if (segment) {
+        return segment
+      }
+    }
+
+    return null
+  } catch {
+    return null
+  }
 }

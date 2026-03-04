@@ -4,6 +4,15 @@ import { fileURLToPath } from "node:url"
 
 const LOCAL_SOURCE_PREFIXES = ["./", "../", "/", "~/", "file://"]
 
+function isHttpUrl(source: string): boolean {
+  if (!URL.canParse(source)) {
+    return false
+  }
+
+  const url = new URL(source)
+  return url.protocol === "http:" || url.protocol === "https:"
+}
+
 export type ResolvedUISource =
   | {
       kind: "local"
@@ -20,7 +29,15 @@ export function isLocalUISource(source: string): boolean {
     return true
   }
 
-  return LOCAL_SOURCE_PREFIXES.some((prefix) => source.startsWith(prefix))
+  if (LOCAL_SOURCE_PREFIXES.some((prefix) => source.startsWith(prefix))) {
+    return true
+  }
+
+  if (isHttpUrl(source)) {
+    return false
+  }
+
+  return true
 }
 
 export function resolveLocalUISourceRoot(
