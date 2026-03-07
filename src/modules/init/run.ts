@@ -74,7 +74,7 @@ export async function initHullaProject(
       )
       const overwriteConfirmed = await confirm({
         message: "Would you like to overwrite it?",
-        initialValue: false,
+        initialValue: true,
       })
       if (!overwriteConfirmed) {
         outro(`${d.package("error")} Initialization cancelled ✖︎`)

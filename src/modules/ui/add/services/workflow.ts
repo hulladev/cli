@@ -19,6 +19,7 @@ import { mkdir } from "node:fs/promises"
 import { dirname, join } from "path"
 import type { AliasRewriteMapping, CreateUiAddTaskInput } from "../types"
 import {
+  formatPostAddUpdateDiffPreview,
   installComponentDependencies,
   runPostAddUpdateStep,
 } from "./dependencies"
@@ -214,17 +215,35 @@ export async function createUiAddTask({
             destinationPath,
             process.cwd()
           )
+          const beforeText = await destinationFile.text()
+          const rawAfterText =
+            typeof sourceContent === "string"
+              ? sourceContent
+              : await sourceFile.text()
+          const previewFormatting =
+            typeof sourceContent === "string"
+              ? await formatPostAddUpdateDiffPreview({
+                  postAddUpdateStep: uiConfig.data.postAddUpdateStep,
+                  projectRoot,
+                  files: [{ path: destinationPath, content: sourceContent }],
+                })
+              : new Map<string, string>()
+          const afterText =
+            previewFormatting.get(destinationPath) ?? rawAfterText
 
-          if (await hasMatchingContent(destinationFile, sourceContent)) {
+          if (beforeText === afterText) {
             summary.unchangedExisting += 1
             continue
           }
 
-          const beforeText = await destinationFile.text()
-          const afterText =
-            typeof sourceContent === "string"
-              ? sourceContent
-              : await sourceFile.text()
+          if (
+            previewFormatting.size === 0 &&
+            (await hasMatchingContent(destinationFile, sourceContent))
+          ) {
+            summary.unchangedExisting += 1
+            continue
+          }
+
           const patch: TsconfigPatchPlan = {
             targetPath: destinationPath,
             beforeText,

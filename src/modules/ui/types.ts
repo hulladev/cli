@@ -26,6 +26,7 @@ export type TsconfigPatchPlan = {
 export type UITsconfigSelection = {
   frameworkPaths: Record<string, string>
   rootPath?: string
+  changedPaths: string[]
 }
 
 export type UIAddResolvedComponent = {

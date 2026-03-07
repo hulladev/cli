@@ -6,8 +6,12 @@ import { d } from "@/terminal/format"
 import { box } from "@/terminal/prompts/box"
 import { confirm } from "@/terminal/prompts/confirm"
 import { log } from "@/terminal/prompts/log"
-import { join, relative } from "path"
+import { mkdir, mkdtemp, rm } from "node:fs/promises"
+import { dirname, join, relative } from "path"
+import { platform } from "process"
 import type { UIProjectConfigSchema } from "schemas/ui.types"
+
+type KnownPostAddFormatter = "prettier" | "oxfmt" | "biome"
 
 export async function installComponentDependencies(input: {
   config: HullaConfig
@@ -193,23 +197,86 @@ export async function runPostAddUpdateStep(input: {
     changedProjectRelativeFiles.length === 1
       ? "1 file"
       : `${changedProjectRelativeFiles.length} files`
-  const escapedFiles = changedProjectRelativeFiles.map(shellEscape).join(" ")
-  const script = configuredCommand.includes("{files}")
-    ? configuredCommand.replaceAll("{files}", escapedFiles)
-    : `${configuredCommand} ${escapedFiles}`
 
   log.info(`Running post add/update command on ${filesLabel}...`)
-  const proc = Bun.spawn(["sh", "-lc", script], {
-    cwd: input.projectRoot,
+  const knownFormatter = parseKnownPostAddFormatter(configuredCommand)
+  if (knownFormatter) {
+    await runKnownPostAddFormatter({
+      formatter: knownFormatter,
+      projectRoot: input.projectRoot,
+      files: input.changedFilePaths,
+      stdout: "inherit",
+      stderr: "inherit",
+    })
+    return
+  }
+
+  const script = buildShellPostAddUpdateCommand(
+    configuredCommand,
+    changedProjectRelativeFiles
+  )
+  await runShellPostAddUpdateCommand({
+    projectRoot: input.projectRoot,
+    script,
     stdout: "inherit",
     stderr: "inherit",
   })
+}
 
-  await proc.exited
-  if (proc.exitCode !== 0) {
-    throw new Error(
-      `Failed to run post add/update command (exit code: ${proc.exitCode}).`
+export async function formatPostAddUpdateDiffPreview(input: {
+  postAddUpdateStep: UIProjectConfigSchema["postAddUpdateStep"]
+  projectRoot: string
+  files: Array<{ path: string; content: string }>
+}): Promise<Map<string, string>> {
+  const configuredCommand = input.postAddUpdateStep.trim()
+  const knownFormatter = parseKnownPostAddFormatter(configuredCommand)
+  if (!knownFormatter || input.files.length === 0) {
+    return new Map()
+  }
+
+  const tempRootParent = join(input.projectRoot, ".hulla", ".tmp")
+  await mkdir(tempRootParent, { recursive: true })
+  const tempRoot = await mkdtemp(join(tempRootParent, "ui-add-preview-"))
+
+  try {
+    const tempFiles = await Promise.all(
+      input.files.map(async (file) => {
+        const relativePath = normalizePath(
+          relative(input.projectRoot, file.path)
+        )
+        const tempPath = join(tempRoot, relativePath)
+        await mkdir(dirname(tempPath), { recursive: true })
+        await Bun.write(tempPath, file.content)
+        return {
+          originalPath: file.path,
+          tempPath,
+        }
+      })
     )
+
+    try {
+      await runKnownPostAddFormatter({
+        formatter: knownFormatter,
+        projectRoot: input.projectRoot,
+        files: tempFiles.map((file) => file.tempPath),
+        stdout: "ignore",
+        stderr: "ignore",
+      })
+    } catch {
+      return new Map()
+    }
+
+    const formattedByPath = new Map<string, string>()
+    for (const file of tempFiles) {
+      formattedByPath.set(
+        file.originalPath,
+        await Bun.file(file.tempPath).text()
+      )
+    }
+
+    return formattedByPath
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true })
   }
 }
 
@@ -243,6 +310,105 @@ async function runInstallScript(input: {
       `Failed to install ${input.label} (exit code: ${proc.exitCode}).`
     )
   }
+}
+
+export function parseKnownPostAddFormatter(
+  command: string
+): KnownPostAddFormatter | null {
+  const normalized = command.trim().replace(/\s+/g, " ")
+
+  if (normalized === "prettier --write {files}") {
+    return "prettier"
+  }
+  if (normalized === "oxfmt {files}") {
+    return "oxfmt"
+  }
+  if (normalized === "biome format --write {files}") {
+    return "biome"
+  }
+
+  return null
+}
+
+function buildShellPostAddUpdateCommand(
+  configuredCommand: string,
+  files: string[]
+): string {
+  const escapedFiles = files.map(shellEscape).join(" ")
+  return configuredCommand.includes("{files}")
+    ? configuredCommand.replaceAll("{files}", escapedFiles)
+    : `${configuredCommand} ${escapedFiles}`
+}
+
+async function runShellPostAddUpdateCommand(input: {
+  projectRoot: string
+  script: string
+  stdout: "inherit" | "ignore"
+  stderr: "inherit" | "ignore"
+}): Promise<void> {
+  const proc = Bun.spawn(["sh", "-lc", input.script], {
+    cwd: input.projectRoot,
+    stdout: input.stdout,
+    stderr: input.stderr,
+  })
+
+  await proc.exited
+  if (proc.exitCode !== 0) {
+    throw new Error(
+      `Failed to run post add/update command (exit code: ${proc.exitCode}).`
+    )
+  }
+}
+
+async function runKnownPostAddFormatter(input: {
+  formatter: KnownPostAddFormatter
+  projectRoot: string
+  files: string[]
+  stdout: "inherit" | "ignore"
+  stderr: "inherit" | "ignore"
+}): Promise<void> {
+  const executable = await resolveFormatterExecutable(
+    input.projectRoot,
+    input.formatter
+  )
+  const formatterArgs =
+    input.formatter === "prettier"
+      ? ["--write"]
+      : input.formatter === "biome"
+        ? ["format", "--write"]
+        : []
+
+  const proc = Bun.spawn([executable, ...formatterArgs, ...input.files], {
+    cwd: input.projectRoot,
+    stdout: input.stdout,
+    stderr: input.stderr,
+  })
+
+  await proc.exited
+  if (proc.exitCode !== 0) {
+    throw new Error(
+      `Failed to run post add/update command (exit code: ${proc.exitCode}).`
+    )
+  }
+}
+
+async function resolveFormatterExecutable(
+  projectRoot: string,
+  formatter: KnownPostAddFormatter
+): Promise<string> {
+  const suffix = platform === "win32" ? ".cmd" : ""
+  const localExecutable = join(
+    projectRoot,
+    "node_modules",
+    ".bin",
+    `${formatter}${suffix}`
+  )
+
+  if (await Bun.file(localExecutable).exists()) {
+    return localExecutable
+  }
+
+  return formatter
 }
 
 function shellEscape(value: string): string {

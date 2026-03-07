@@ -222,11 +222,7 @@ export async function createUiInstallTask({
     projectRoot,
     uiConfig,
   })
-  let codeRoot = await requestProjectPath({
-    message: "Code directory root for @/ alias imports:",
-    initialValue: initialCodeRoot,
-    projectRoot,
-  })
+  let codeRoot = initialCodeRoot
 
   for (const lib of selectedLibs) {
     const frameworkKeys = keys(lib.config.frameworks)
@@ -274,6 +270,13 @@ export async function createUiInstallTask({
     const existingInstall = uiConfig.installs.find(
       (install) => install.sourceUrl === lib.url
     )
+    codeRoot = await requestProjectPath({
+      message: "Code directory root for @/ alias imports:",
+      initialValue: existingInstall?.codeRoot ?? codeRoot,
+      projectRoot,
+      createIfMissing: true,
+      createLabel: "code root directory",
+    })
     const pathSelection = await requestComponentsRoot({
       libraryName: lib.config.name,
       codeRoot,

@@ -43,6 +43,7 @@ export async function createUiTsconfigTask({
 }: CreateUiTsconfigTaskInput): Promise<UITsconfigSelection> {
   const selection: UITsconfigSelection = {
     frameworkPaths: {},
+    changedPaths: [],
   }
 
   if (selectedFrameworks.length === 0) {
@@ -163,6 +164,7 @@ export async function createUiTsconfigTask({
   }
 
   await applyTsconfigPatches(patches)
+  selection.changedPaths = patches.map((patch) => patch.targetPath)
   log.info("tsconfig changes applied successfully.")
   return selection
 }

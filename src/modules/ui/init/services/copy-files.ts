@@ -131,7 +131,7 @@ export async function createUiCopyTask({
   if (existingCount > 0) {
     overwriteExisting = await confirm({
       message: `Found ${existingCount} existing copied library files. Overwrite them?`,
-      initialValue: false,
+      initialValue: true,
     })
   }
 

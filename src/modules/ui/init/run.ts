@@ -15,6 +15,7 @@ import { createUiDepsTask } from "./services/dependencies"
 import { createUiInstallTask } from "./services/install-plan"
 import { createUiTsconfigTask } from "./services/tsconfig-plan"
 import { createUiViteTask } from "./services/vite"
+import { runPostAddUpdateStep } from "../add/services/dependencies"
 
 export async function runUiInit({
   context,
@@ -34,8 +35,16 @@ export async function runUiInit({
     config,
     uiConfig: loadedUIConfig.data,
   })
+  const postAddUpdateStep = await promptPostAddUpdateStep(
+    loadedUIConfig.data.postAddUpdateStep
+  )
 
   const tsconfigSelection = await createUiTsconfigTask({ selectedFrameworks })
+  await runPostAddUpdateStep({
+    postAddUpdateStep,
+    projectRoot: getProjectRootFromConfigPath(config.path),
+    changedFilePaths: tsconfigSelection.changedPaths,
+  })
   await createUiViteTask({
     codeRoots: selectedFrameworks.map((framework) => framework.codeRoot),
   })
@@ -82,9 +91,6 @@ export async function runUiInit({
   )
   const retainedInstalls = loadedUIConfig.data.installs.filter(
     (item) => !replacedSourceUrls.has(item.sourceUrl)
-  )
-  const postAddUpdateStep = await promptPostAddUpdateStep(
-    loadedUIConfig.data.postAddUpdateStep
   )
 
   await writeUIConfig(loadedUIConfig.path, {
