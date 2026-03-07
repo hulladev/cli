@@ -2,9 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "default": {
     "version": 1,
-    "sources": [
-      "https://github.com/hulladev/ui/tree/master/generated"
-    ],
+    "sources": ["https://github.com/hulladev/ui/tree/master/generated"],
     "installs": [],
     "postAddUpdateStep": ""
   },
@@ -20,9 +18,7 @@
       "maximum": 9007199254740991
     },
     "sources": {
-      "default": [
-        "https://github.com/hulladev/ui/tree/master/generated"
-      ],
+      "default": ["https://github.com/hulladev/ui/tree/master/generated"],
       "type": "array",
       "items": {
         "anyOf": [
@@ -104,12 +100,7 @@
       "type": "string"
     }
   },
-  "required": [
-    "version",
-    "sources",
-    "installs",
-    "postAddUpdateStep"
-  ],
+  "required": ["version", "sources", "installs", "postAddUpdateStep"],
   "additionalProperties": false,
   "title": "Hulla UI Config Schema",
   "description": "UI package configuration schema for Hulla CLI"

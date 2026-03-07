@@ -1,5 +1,5 @@
-import { d } from "@/decorators"
 import { getCliCwd } from "@/app/runtime"
+import { d } from "@/decorators"
 import { box } from "@/prompts/box"
 import { confirm } from "@/prompts/confirm"
 import { log } from "@/prompts/log"
@@ -56,10 +56,7 @@ export async function createUiViteTask({
     return
   }
 
-  box(
-    updated.preview,
-    `Proposed changes: ${relative(cliCwd, viteConfigPath)}`
-  )
+  box(updated.preview, `Proposed changes: ${relative(cliCwd, viteConfigPath)}`)
 
   const shouldApply = await confirm({
     message: "Apply these Vite alias changes?",

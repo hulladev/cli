@@ -1,5 +1,5 @@
-import type { HullaConfig } from "@/app/types"
 import { getCliCwd, requestCliExit } from "@/app/runtime"
+import type { HullaConfig } from "@/app/types"
 import { writeJsonFile } from "@/platform/fs/bun"
 import { omit } from "@/shared/utils/objects"
 import { d } from "@/terminal/format"

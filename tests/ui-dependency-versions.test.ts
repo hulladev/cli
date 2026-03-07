@@ -1,4 +1,7 @@
-import { classifyDependencySpecs, extractDependencyName } from "@/modules/ui/shared/dependency-versions"
+import {
+  classifyDependencySpecs,
+  extractDependencyName,
+} from "@/modules/ui/shared/dependency-versions"
 import { describe, expect, test } from "bun:test"
 
 describe("ui dependency version classification", () => {

@@ -1,5 +1,5 @@
-import { isCancel } from "@clack/prompts"
 import { getCliRuntime, requestCliExit } from "@/app/runtime"
+import { isCancel } from "@clack/prompts"
 
 export function defaultCancel<T extends Parameters<typeof isCancel>[0]>(
   params: T

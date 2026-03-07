@@ -1,5 +1,5 @@
-import type { AutocompleteMultiSelectOptions } from "@clack/prompts"
 import { getCliRuntime } from "@/app/runtime"
+import type { AutocompleteMultiSelectOptions } from "@clack/prompts"
 import { handleCancel } from "./cancel"
 import { isPromptNonInteractive, NonInteractivePromptError } from "./runtime"
 import type { ExtendedPrompt } from "./types.prompts"

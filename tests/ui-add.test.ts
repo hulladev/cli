@@ -160,7 +160,7 @@ describe("ui add selection", () => {
         'for arg in "$@"; do',
         '  case "$arg" in',
         "    --write) ;;",
-        '    *) printf \'formatted button\\n\' > "$arg" ;;',
+        "    *) printf 'formatted button\\n' > \"$arg\" ;;",
         "  esac",
         "done",
         "",

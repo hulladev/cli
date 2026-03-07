@@ -41,7 +41,9 @@ export async function createUiDepsTask({
     }
     dependencyMap.set(
       dependencyName,
-      dependencyName === dependency ? "*" : dependency.slice(dependencyName.length + 1)
+      dependencyName === dependency
+        ? "*"
+        : dependency.slice(dependencyName.length + 1)
     )
   }
 
@@ -52,7 +54,9 @@ export async function createUiDepsTask({
     }
     devDependencyMap.set(
       dependencyName,
-      dependencyName === dependency ? "*" : dependency.slice(dependencyName.length + 1)
+      dependencyName === dependency
+        ? "*"
+        : dependency.slice(dependencyName.length + 1)
     )
   }
 
@@ -60,11 +64,7 @@ export async function createUiDepsTask({
     devDependencyMap.delete(dependencyName)
   }
 
-  const {
-    toInstall,
-    toUpdate,
-    satisfied,
-  } = classifyDependencySpecs({
+  const { toInstall, toUpdate, satisfied } = classifyDependencySpecs({
     dependencies: dependencyMap.entries(),
     projectPackageJson,
   })

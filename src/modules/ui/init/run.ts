@@ -10,12 +10,12 @@ import {
 import { select } from "@/terminal/prompts/select"
 import { text } from "@/terminal/prompts/text"
 import { isAbsolute, relative } from "path"
+import { runPostAddUpdateStep } from "../add/services/dependencies"
 import { createUiCopyTask } from "./services/copy-files"
 import { createUiDepsTask } from "./services/dependencies"
 import { createUiInstallTask } from "./services/install-plan"
 import { createUiTsconfigTask } from "./services/tsconfig-plan"
 import { createUiViteTask } from "./services/vite"
-import { runPostAddUpdateStep } from "../add/services/dependencies"
 
 export async function runUiInit({
   context,

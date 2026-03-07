@@ -5,16 +5,12 @@ import { ParserError } from "@hulla/args"
 import { dirname, join } from "node:path"
 import packageJson from "../../package.json"
 import {
-  applyCliRuntime,
-  CliExitSignal,
-  getCliCwd,
-} from "./runtime"
-import {
   configureContextRuntime,
   createCommandContext,
   terminal,
 } from "./context"
 import { cli, commandModules } from "./registry"
+import { applyCliRuntime, CliExitSignal, getCliCwd } from "./runtime"
 import type {
   CommandModule,
   HullaConfig,
@@ -25,7 +21,9 @@ import type {
 
 type InvocationMode = "command" | "interactive-home" | "empty"
 
-async function runGlobalArguments(parserResult: ParserResult): Promise<number | null> {
+async function runGlobalArguments(
+  parserResult: ParserResult
+): Promise<number | null> {
   if (parserResult.arguments.version?.detected) {
     terminal.outro(`hulla v${packageJson.version}`)
     return 0
@@ -135,7 +133,9 @@ export async function runCli({
     }
 
     const config = detectedCommand.requiresProjectConfig
-      ? await ensureProjectConfig(parserResult.arguments.config?.value as string)
+      ? await ensureProjectConfig(
+          parserResult.arguments.config?.value as string
+        )
       : createPlaceholderConfig(parserResult.arguments.config?.value)
     const context = createCommandContext({
       argv,

@@ -2,7 +2,10 @@ import { runCli } from "@/app/entrypoint"
 import { afterEach, describe, expect, test } from "bun:test"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
-import { createScriptedPromptAdapter, createTerminalCollector } from "./cli-test-utils"
+import {
+  createScriptedPromptAdapter,
+  createTerminalCollector,
+} from "./cli-test-utils"
 import { createTempDir, removeTempDir } from "./helpers"
 
 const tempDirs: string[] = []
@@ -192,7 +195,12 @@ describe("cli integration", () => {
     )
     await writeFile(
       join(dir, "vite.config.ts"),
-      ['import { defineConfig } from "vite"', "", "export default defineConfig({})", ""].join("\n")
+      [
+        'import { defineConfig } from "vite"',
+        "",
+        "export default defineConfig({})",
+        "",
+      ].join("\n")
     )
     await writeHullaConfig(dir)
     await writeUiConfig(dir, {
@@ -220,7 +228,11 @@ describe("cli integration", () => {
         codeRoot: string
         componentsRoot: string
         copyFilesRoot: string
-        frameworks: Array<{ name: string; templatePath: string; outputPath: string }>
+        frameworks: Array<{
+          name: string
+          templatePath: string
+          outputPath: string
+        }>
       }>
       postAddUpdateStep: string
     }
@@ -233,7 +245,9 @@ describe("cli integration", () => {
     expect(uiConfig.postAddUpdateStep).toBe("")
     expect(tsconfig).toContain('"@/*"')
     expect(viteConfig).toContain('alias: { "@": "/src" }')
-    expect(collector.output()).toContain("outro: @hulla/cli  UI command executed")
+    expect(collector.output()).toContain(
+      "outro: @hulla/cli  UI command executed"
+    )
   })
 
   test("uses scripted framework selection for ambiguous ui add", async () => {
@@ -289,7 +303,10 @@ describe("cli integration", () => {
 
     expect(result.exitCode).toBe(0)
     expect(
-      await readFile(join(dir, "src", "components", "Button", "index.tsx"), "utf8")
+      await readFile(
+        join(dir, "src", "components", "Button", "index.tsx"),
+        "utf8"
+      )
     ).toContain("react-button")
   })
 

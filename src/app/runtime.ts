@@ -1,3 +1,4 @@
+import type { ExtendedPrompt } from "@/terminal/prompts/types.prompts"
 import type {
   AutocompleteMultiSelectOptions,
   ConfirmOptions,
@@ -21,7 +22,6 @@ import {
   spinner as cSpinner,
   text as cText,
 } from "@clack/prompts"
-import type { ExtendedPrompt } from "@/terminal/prompts/types.prompts"
 import { existsSync, lstatSync, readdirSync } from "node:fs"
 import { dirname, join } from "node:path"
 
@@ -130,8 +130,7 @@ export function applyCliRuntime(input: CliRuntimeOverrides): () => void {
     state.terminal = input.terminal
   }
   if (input.cwd) {
-    state.cwd =
-      typeof input.cwd === "string" ? () => input.cwd : input.cwd
+    state.cwd = typeof input.cwd === "string" ? () => input.cwd : input.cwd
   }
   if (typeof input.nonInteractive === "boolean") {
     state.nonInteractive = input.nonInteractive
@@ -234,7 +233,9 @@ function createProductionPathPromptAdapter(): PromptAdapter["path"] {
           }))
 
           for (const dynamicOption of dynamicOptions) {
-            if (options.some((option) => option.value === dynamicOption.value)) {
+            if (
+              options.some((option) => option.value === dynamicOption.value)
+            ) {
               continue
             }
             options.push(dynamicOption)

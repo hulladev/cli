@@ -23,8 +23,8 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "fmt": "prettier --write .",
+    "fmt:check": "prettier --check .",
     "test": "bun test",
     "gen:schema": "bun scripts/generate-schema.ts",
     "build": "bun run gen:schema && bun build --compile ./src/bin/index.ts --outfile ./dist/hulla",

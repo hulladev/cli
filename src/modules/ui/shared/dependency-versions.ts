@@ -26,7 +26,10 @@ export function classifyDependencySpecs(input: {
   }
 
   for (const [name, required] of input.dependencies) {
-    const installed = getInstalledDependencyVersion(input.projectPackageJson, name)
+    const installed = getInstalledDependencyVersion(
+      input.projectPackageJson,
+      name
+    )
     const spec = formatDependencySpec(name, required)
 
     if (!installed) {
@@ -122,9 +125,7 @@ function coerceComparableVersion(spec: string): ComparableVersion | null {
     return null
   }
 
-  const match = normalized.match(
-    /(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?/
-  )
+  const match = normalized.match(/(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?/)
   if (!match) {
     return null
   }

@@ -15,7 +15,9 @@ describe("cli smoke", () => {
     const result = await runCliProcess(["wat"])
 
     expect(result.exitCode).toBe(1)
-    expect(result.output).toContain("Unfortunately we encountered the following error")
+    expect(result.output).toContain(
+      "Unfortunately we encountered the following error"
+    )
   })
 
   test("runs a happy-path command through the real process entrypoint", async () => {
