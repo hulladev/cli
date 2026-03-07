@@ -11,8 +11,50 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/decorators": ["./src/terminal/format/index.ts"],
+      "@/prompts/*": ["./src/terminal/prompts/*"],
+      "@/utils/*": ["./src/shared/utils/*"],
+      "@/lib/cache": ["./src/platform/cache/ui-cache.ts"],
+      "@/lib/shared/bunUtils": ["./src/platform/fs/bun.ts"],
+      "@/lib/shared/getPackageFiles": ["./src/platform/package-json/index.ts"],
+      "@/lib/shared/detectFramework": [
+        "./src/platform/framework-detection/index.ts"
+      ],
+      "@/lib/shared/constants": ["./src/shared/constants/index.ts"],
+      "@/lib/shared/getHullaConfig": [
+        "./src/platform/config/read-hulla-config.ts"
+      ],
+      "@/lib/shared/writers": ["./src/platform/config/write-hulla-config.ts"],
+      "@/lib/shared/getConfigScripts": [
+        "./src/modules/init/services/config-scripts.ts"
+      ],
+      "@/lib/shared/getTsConfigPath": [
+        "./src/modules/ui/tsconfig/get-tsconfig-path.ts"
+      ],
+      "@/lib/ui/config": ["./src/modules/ui/config/index.ts"],
+      "@/lib/ui/source": ["./src/modules/ui/source/index.ts"],
+      "@/lib/ui/isUiConfigured": [
+        "./src/modules/ui/shared/is-ui-configured.ts"
+      ],
+      "@/lib/ui/tasks/ui.add.task": [
+        "./src/modules/ui/add/services/workflow.ts"
+      ],
+      "@/lib/ui/tasks/ui.copy.task": [
+        "./src/modules/ui/init/services/copy-files.ts"
+      ],
+      "@/lib/ui/tasks/ui.deps.task": [
+        "./src/modules/ui/init/services/dependencies.ts"
+      ],
+      "@/lib/ui/tasks/ui.install.task": [
+        "./src/modules/ui/init/services/install-plan.ts"
+      ],
+      "@/lib/ui/tasks/ui.tsconfig.task": [
+        "./src/modules/ui/init/services/tsconfig-plan.ts"
+      ],
+      "@/lib/ui/tasks/ui.vite.task": ["./src/modules/ui/init/services/vite.ts"]
     },
     "types": ["bun-types"]
-  }
+  },
+  "exclude": ["dist", "node_modules", "sandbox"]
 }

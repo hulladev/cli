@@ -9,7 +9,13 @@ export default tseslint.config(
   tseslint.configs.recommended,
   prettier,
   {
-    ignores: ["dist/**", "node_modules/**", ".hulla/**", ".changeset/**"],
+    ignores: [
+      "dist/**",
+      "node_modules/**",
+      ".hulla/**",
+      ".changeset/**",
+      "sandbox/**",
+    ],
   },
   {
     rules: {
@@ -40,13 +46,13 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/prompts/**/*"],
+    files: ["src/prompts/**/*", "src/terminal/prompts/**/*"],
     rules: {
       "@typescript-eslint/no-restricted-imports": "off",
     },
   },
   {
-    files: ["src/decorators/**/*"],
+    files: ["src/decorators/**/*", "src/terminal/format/**/*"],
     rules: {
       "@typescript-eslint/no-restricted-imports": "off",
     },

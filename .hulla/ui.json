@@ -1,8 +1,6 @@
 {
   "version": 1,
-  "sources": [
-    "https://github.com/hulladev/ui/tree/master/generated"
-  ],
+  "sources": ["https://github.com/hulladev/ui/tree/master/generated"],
   "installs": [
     {
       "sourceUrl": "https://github.com/hulladev/ui/tree/master/generated",
