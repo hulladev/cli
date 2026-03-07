@@ -5,5 +5,6 @@ import { runUi } from "./run"
 export const uiModule: CommandModule = {
   name: "ui",
   definition: uiCommand,
+  requiresProjectConfig: true,
   run: runUi,
 }

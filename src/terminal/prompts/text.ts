@@ -1,5 +1,5 @@
 import type { TextOptions } from "@clack/prompts"
-import { text as cText } from "@clack/prompts"
+import { getCliRuntime } from "@/app/runtime"
 import { handleCancel } from "./cancel"
 import { isPromptNonInteractive, NonInteractivePromptError } from "./runtime"
 import type { ExtendedPrompt } from "./types.prompts"
@@ -19,5 +19,5 @@ export async function text(params: TextPrompt) {
     })
   }
 
-  return cText(params).then(handleCancel)
+  return getCliRuntime().prompts.text(params).then(handleCancel)
 }

@@ -1,5 +1,5 @@
 import type { SelectOptions } from "@clack/prompts"
-import { select as cSelect } from "@clack/prompts"
+import { getCliRuntime } from "@/app/runtime"
 import { handleCancel } from "./cancel"
 import { isPromptNonInteractive, NonInteractivePromptError } from "./runtime"
 import type { ExtendedPrompt } from "./types.prompts"
@@ -19,5 +19,5 @@ export async function select<const T>(params: SelectPrompt<T>) {
     })
   }
 
-  return cSelect(params).then(handleCancel)
+  return getCliRuntime().prompts.select<T>(params).then(handleCancel)
 }

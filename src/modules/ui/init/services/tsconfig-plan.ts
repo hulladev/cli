@@ -1,3 +1,4 @@
+import { getCliCwd } from "@/app/runtime"
 import { normalizeProjectRelativePath } from "@/modules/ui/config"
 import { applyTsconfigPatches } from "@/modules/ui/tsconfig/apply"
 import { createUnifiedDiff } from "@/modules/ui/tsconfig/diff"
@@ -51,7 +52,7 @@ export async function createUiTsconfigTask({
     return selection
   }
 
-  const cwd = process.cwd()
+  const cwd = getCliCwd()
   const existingTsconfigs = await discoverTsconfigPaths(cwd)
   const normalizedFrameworks = await filterValidFrameworks(selectedFrameworks)
 
@@ -356,7 +357,7 @@ async function requestTsconfigPath(input: {
   existingTsconfigs: string[]
   defaultNewPath: string
 }): Promise<string> {
-  const cwd = process.cwd()
+  const cwd = getCliCwd()
   const recommendedPath = pickRecommendedTsconfigPath(input.existingTsconfigs)
   const options = [
     ...input.existingTsconfigs.map((path, index) => ({
@@ -429,7 +430,7 @@ async function requestCustomExistingPath(): Promise<string> {
     validate: validateTsconfigPath,
   })
 
-  const absolutePath = toAbsolutePath(input, process.cwd())
+  const absolutePath = toAbsolutePath(input, getCliCwd())
   const file = Bun.file(absolutePath)
   if (!(await file.exists())) {
     log.error(`File ${absolutePath} does not exist`)
@@ -447,7 +448,7 @@ async function requestNewFilePath(defaultPath: string): Promise<string> {
     validate: validateTsconfigPath,
   })
 
-  return toAbsolutePath(input, process.cwd())
+  return toAbsolutePath(input, getCliCwd())
 }
 
 function validateTsconfigPath(value: string | undefined): string | undefined {

@@ -1,6 +1,6 @@
+import { getCliCwd } from "@/app/runtime"
 import { findFiles, readJsonFile, resolveAbsolute } from "@/platform/fs/bun"
 import type { PackageJson } from "@/platform/package-json"
-import { cwd } from "process"
 
 export type Framework =
   | "react"
@@ -58,7 +58,7 @@ export async function detectFramework(dir: string): Promise<Framework[]> {
  * @returns Framework detections and a map of all read package.json contents
  */
 export async function detectFrameworkDetailed(
-  dir: string = cwd()
+  dir: string = getCliCwd()
 ): Promise<FrameworkDetectionResult> {
   const detections: FrameworkDetection[] = []
   const packageJsons = new Map<string, PackageJson>()

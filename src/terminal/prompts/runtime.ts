@@ -1,10 +1,4 @@
-type PromptRuntimeState = {
-  nonInteractive: boolean
-}
-
-const state: PromptRuntimeState = {
-  nonInteractive: false,
-}
+import { applyCliRuntime, getCliRuntime } from "@/app/runtime"
 
 type ConfigurePromptRuntimeInput = {
   nonInteractive: boolean
@@ -33,9 +27,11 @@ export class NonInteractivePromptError extends Error {
 export function configurePromptRuntime(
   input: ConfigurePromptRuntimeInput
 ): void {
-  state.nonInteractive = input.nonInteractive
+  applyCliRuntime({
+    nonInteractive: input.nonInteractive,
+  })
 }
 
 export function isPromptNonInteractive(): boolean {
-  return state.nonInteractive
+  return getCliRuntime().nonInteractive
 }

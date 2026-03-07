@@ -1,4 +1,5 @@
 import { commandErr, commandOkMessage } from "@/app/result"
+import { getCliCwd } from "@/app/runtime"
 import type { CommandModule, ParserResult } from "@/app/types"
 import { directoryExists } from "@/platform/fs/bun"
 import { getPackageJson } from "@/platform/package-json"
@@ -12,7 +13,7 @@ export async function runInstall({
   const dir =
     typeof result.arguments.config?.value === "string"
       ? result.arguments.config.value
-      : process.cwd()
+      : getCliCwd()
 
   try {
     if (!(await directoryExists(dir))) {

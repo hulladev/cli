@@ -1,3 +1,5 @@
-import { outro as cOutro } from "@clack/prompts"
+import { getCliRuntime } from "@/app/runtime"
 
-export const outro = cOutro
+export function outro(message: string) {
+  getCliRuntime().terminal.outro(message)
+}

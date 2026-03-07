@@ -1,10 +1,10 @@
 import type { HullaConfig } from "@/app/types"
+import { getCliCwd, requestCliExit } from "@/app/runtime"
 import { writeJsonFile } from "@/platform/fs/bun"
 import { omit } from "@/shared/utils/objects"
 import { d } from "@/terminal/format"
 import { log } from "@/terminal/prompts/log"
 import { join } from "path"
-import { cwd } from "process"
 import { ConfigSchema } from "schemas/hulla.schema"
 import type { HullaConfigSchema } from "schemas/hulla.types"
 
@@ -22,7 +22,7 @@ function removeDefaults(config: HullaConfigSchema): {
   }
   configs?: HullaConfigSchema["configs"]
 } {
-  const defaultCacheDir = join(cwd(), ".hulla/.cache")
+  const defaultCacheDir = join(getCliCwd(), ".hulla/.cache")
   const cli: {
     scripts: HullaConfigSchema["cli"]["scripts"]
     cache?: boolean
@@ -77,7 +77,7 @@ export async function writeConfig(
     log.error(
       `${d.package("error")} Invalid config: ${validatedConfig.error.message}`
     )
-    process.exit(1)
+    requestCliExit(1)
   }
   const dataToWrite = removeDefaults(validatedConfig.data)
 

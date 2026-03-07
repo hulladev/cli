@@ -1,3 +1,5 @@
-import { spinner as cSpinner } from "@clack/prompts"
+import { getCliRuntime } from "@/app/runtime"
 
-export const spinner = cSpinner
+export function spinner() {
+  return getCliRuntime().terminal.spinner()
+}

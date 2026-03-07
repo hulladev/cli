@@ -1,3 +1,4 @@
+import type { CliRuntimeOverrides } from "@/app/runtime"
 import type { d } from "@/terminal/format"
 import type { intro } from "@/terminal/prompts/intro"
 import type { log } from "@/terminal/prompts/log"
@@ -56,6 +57,7 @@ export type CommandOutcome<T = unknown, E = Error> =
 export type CommandModule<TDefinition = unknown, TData = unknown> = {
   name: string
   definition: TDefinition
+  requiresProjectConfig?: boolean
   run: (input: {
     context: CommandContext
     result: ParserNode
@@ -69,4 +71,13 @@ export type SubcommandModule<TDefinition = unknown, TData = unknown> = {
     context: CommandContext
     result: ParserNode
   }) => Promise<CommandOutcome<TData>>
+}
+
+export type RunCliInput = {
+  argv?: string[]
+  runtime?: CliRuntimeOverrides
+}
+
+export type RunCliResult = {
+  exitCode: number
 }

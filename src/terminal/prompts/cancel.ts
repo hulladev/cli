@@ -1,11 +1,12 @@
-import { cancel, isCancel } from "@clack/prompts"
+import { isCancel } from "@clack/prompts"
+import { getCliRuntime, requestCliExit } from "@/app/runtime"
 
 export function defaultCancel<T extends Parameters<typeof isCancel>[0]>(
   params: T
 ) {
   if (isCancel(params)) {
-    cancel("Operation cancelled")
-    return process.exit(1)
+    getCliRuntime().terminal.cancel("Operation cancelled")
+    return requestCliExit(1)
   }
 
   return params
@@ -16,9 +17,9 @@ export function handleCancel<T>(result: T | symbol, handler?: () => void) {
     if (handler) {
       handler()
     } else {
-      cancel("Operation cancelled")
+      getCliRuntime().terminal.cancel("Operation cancelled")
     }
-    return process.exit(1)
+    return requestCliExit(1)
   }
 
   return result

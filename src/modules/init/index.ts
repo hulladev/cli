@@ -10,6 +10,7 @@ import {
 export const initModule: CommandModule = {
   name: "init",
   definition: initCommand,
+  requiresProjectConfig: false,
   run: runInit,
 }
 

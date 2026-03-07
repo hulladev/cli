@@ -1,3 +1,5 @@
-import { box as cBox } from "@clack/prompts"
+import { getCliRuntime } from "@/app/runtime"
 
-export const box = cBox
+export function box(message: string, title?: string) {
+  getCliRuntime().terminal.box(message, title)
+}

@@ -1,4 +1,5 @@
 import { commandErr, commandOk } from "@/app/result"
+import { getCliCwd, requestCliExit } from "@/app/runtime"
 import type {
   CommandModule,
   HullaConfig,
@@ -78,7 +79,7 @@ export async function initHullaProject(
       })
       if (!overwriteConfirmed) {
         outro(`${d.package("error")} Initialization cancelled ✖︎`)
-        process.exit(0)
+        requestCliExit(0)
       }
     }
 
@@ -119,10 +120,10 @@ export async function initHullaProject(
 
 export function getProjectDirFromConfigOption(configPath?: string): string {
   if (!configPath) {
-    return process.cwd()
+    return getCliCwd()
   }
 
-  return dirname(resolveAbsolute(process.cwd(), configPath))
+  return dirname(resolveAbsolute(getCliCwd(), configPath))
 }
 
 export const initRunner: CommandModule["run"] = runInit

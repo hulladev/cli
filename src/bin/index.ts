@@ -1,4 +1,8 @@
 #!/usr/bin/env bun
-import { main } from "@/app/entrypoint"
+import { runCli } from "@/app/entrypoint"
 
-main().catch(console.error)
+runCli()
+  .then(({ exitCode }) => {
+    process.exit(exitCode)
+  })
+  .catch(console.error)

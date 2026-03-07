@@ -1,5 +1,5 @@
 import type { MultiSelectOptions } from "@clack/prompts"
-import { multiselect as cMultiselect } from "@clack/prompts"
+import { getCliRuntime } from "@/app/runtime"
 import { handleCancel } from "./cancel"
 import { isPromptNonInteractive, NonInteractivePromptError } from "./runtime"
 import type { ExtendedPrompt } from "./types.prompts"
@@ -19,5 +19,5 @@ export async function multiselect<const T>(params: MultiselectOptions<T>) {
     })
   }
 
-  return cMultiselect<T>(params).then(handleCancel)
+  return getCliRuntime().prompts.multiselect<T>(params).then(handleCancel)
 }

@@ -1,4 +1,5 @@
 import { d } from "@/decorators"
+import { getCliCwd } from "@/app/runtime"
 import { box } from "@/prompts/box"
 import { confirm } from "@/prompts/confirm"
 import { log } from "@/prompts/log"
@@ -34,7 +35,8 @@ export async function createUiViteTask({
     )
   }
 
-  const viteConfigPath = await findViteConfigPath(process.cwd())
+  const cliCwd = getCliCwd()
+  const viteConfigPath = await findViteConfigPath(cliCwd)
   if (!viteConfigPath) {
     return
   }
@@ -49,14 +51,14 @@ export async function createUiViteTask({
   const updated = injectViteAlias(original, aliasTarget)
   if (!updated) {
     log.warn(
-      `Could not safely update ${d.path(relative(process.cwd(), viteConfigPath))}. Add resolve.alias for @ manually.`
+      `Could not safely update ${d.path(relative(cliCwd, viteConfigPath))}. Add resolve.alias for @ manually.`
     )
     return
   }
 
   box(
     updated.preview,
-    `Proposed changes: ${relative(process.cwd(), viteConfigPath)}`
+    `Proposed changes: ${relative(cliCwd, viteConfigPath)}`
   )
 
   const shouldApply = await confirm({

@@ -1,4 +1,5 @@
 import { d } from "@/decorators"
+import { getCliCwd } from "@/app/runtime"
 import {
   getProjectRootFromConfigPath,
   normalizeProjectRelativePath,
@@ -213,7 +214,7 @@ export async function createUiAddTask({
         if (destinationExists) {
           const destinationDisplayPath = toRelativeDisplayPath(
             destinationPath,
-            process.cwd()
+            getCliCwd()
           )
           const beforeText = await destinationFile.text()
           const rawAfterText =
@@ -252,7 +253,7 @@ export async function createUiAddTask({
           }
 
           box(
-            createUnifiedDiff(patch, process.cwd()),
+            createUnifiedDiff(patch, getCliCwd()),
             `File exists: ${destinationDisplayPath}`
           )
 

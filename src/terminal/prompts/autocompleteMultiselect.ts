@@ -1,5 +1,5 @@
 import type { AutocompleteMultiSelectOptions } from "@clack/prompts"
-import { autocompleteMultiselect as cAutocompleteMultiselect } from "@clack/prompts"
+import { getCliRuntime } from "@/app/runtime"
 import { handleCancel } from "./cancel"
 import { isPromptNonInteractive, NonInteractivePromptError } from "./runtime"
 import type { ExtendedPrompt } from "./types.prompts"
@@ -22,5 +22,7 @@ export async function autocompleteMultiselect<const T>(
     })
   }
 
-  return cAutocompleteMultiselect<T>(params).then(handleCancel)
+  return getCliRuntime()
+    .prompts.autocompleteMultiselect<T>(params)
+    .then(handleCancel)
 }

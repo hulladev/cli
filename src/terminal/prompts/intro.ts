@@ -1,4 +1,4 @@
-import { intro as cIntro } from "@clack/prompts"
+import { getCliRuntime } from "@/app/runtime"
 
 let didIntro = false
 
@@ -8,5 +8,9 @@ export function intro(
 ) {
   if (mode === "preventDupes" && didIntro) return
   didIntro = true
-  cIntro(message)
+  getCliRuntime().terminal.intro(message)
+}
+
+export function resetIntroState(): void {
+  didIntro = false
 }
