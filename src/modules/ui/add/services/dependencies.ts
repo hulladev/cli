@@ -13,6 +13,12 @@ import type { UIProjectConfigSchema } from "schemas/ui.types"
 
 type KnownPostAddFormatter = "prettier" | "oxfmt" | "biome"
 
+type FormatterExecutionPlan = {
+  command: string
+  args: string[]
+  displayCommand: string
+}
+
 export async function installComponentDependencies(input: {
   config: HullaConfig
   projectRoot: string
@@ -317,13 +323,25 @@ export function parseKnownPostAddFormatter(
 ): KnownPostAddFormatter | null {
   const normalized = command.trim().replace(/\s+/g, " ")
 
-  if (normalized === "prettier --write {files}") {
+  if (
+    normalized === "prettier --write {files}" ||
+    normalized === "npx prettier --write {files}" ||
+    normalized === "bunx prettier --write {files}"
+  ) {
     return "prettier"
   }
-  if (normalized === "oxfmt {files}") {
+  if (
+    normalized === "oxfmt {files}" ||
+    normalized === "npx oxfmt {files}" ||
+    normalized === "bunx oxfmt {files}"
+  ) {
     return "oxfmt"
   }
-  if (normalized === "biome format --write {files}") {
+  if (
+    normalized === "biome format --write {files}" ||
+    normalized === "npx biome format --write {files}" ||
+    normalized === "bunx biome format --write {files}"
+  ) {
     return "biome"
   }
 
@@ -367,7 +385,7 @@ async function runKnownPostAddFormatter(input: {
   stdout: "inherit" | "ignore"
   stderr: "inherit" | "ignore"
 }): Promise<void> {
-  const executable = await resolveFormatterExecutable(
+  const executionPlan = await resolveFormatterExecutionPlan(
     input.projectRoot,
     input.formatter
   )
@@ -378,11 +396,19 @@ async function runKnownPostAddFormatter(input: {
         ? ["format", "--write"]
         : []
 
-  const proc = Bun.spawn([executable, ...formatterArgs, ...input.files], {
-    cwd: input.projectRoot,
-    stdout: input.stdout,
-    stderr: input.stderr,
-  })
+  const proc = Bun.spawn(
+    [
+      executionPlan.command,
+      ...executionPlan.args,
+      ...formatterArgs,
+      ...input.files,
+    ],
+    {
+      cwd: input.projectRoot,
+      stdout: input.stdout,
+      stderr: input.stderr,
+    }
+  )
 
   await proc.exited
   if (proc.exitCode !== 0) {
@@ -392,10 +418,10 @@ async function runKnownPostAddFormatter(input: {
   }
 }
 
-async function resolveFormatterExecutable(
+export async function resolveFormatterExecutionPlan(
   projectRoot: string,
   formatter: KnownPostAddFormatter
-): Promise<string> {
+): Promise<FormatterExecutionPlan> {
   const suffix = platform === "win32" ? ".cmd" : ""
   const localExecutable = join(
     projectRoot,
@@ -405,10 +431,77 @@ async function resolveFormatterExecutable(
   )
 
   if (await Bun.file(localExecutable).exists()) {
-    return localExecutable
+    return {
+      command: localExecutable,
+      args: [],
+      displayCommand: formatter,
+    }
   }
 
-  return formatter
+  const packageJson = await readPackageJson(join(projectRoot, "package.json"))
+  const hasFormatterDependency = Boolean(
+    packageJson?.devDependencies?.[formatter] ??
+      packageJson?.dependencies?.[formatter]
+  )
+
+  if (hasFormatterDependency) {
+    return {
+      command: formatter,
+      args: [],
+      displayCommand: formatter,
+    }
+  }
+
+  const runner = await detectPackageExecutor(
+    projectRoot,
+    packageJson?.packageManager
+  )
+  return {
+    command: runner,
+    args: [formatter],
+    displayCommand: `${runner} ${formatter}`,
+  }
+}
+
+export async function buildFormatterPostAddCommand(input: {
+  projectRoot: string
+  formatter: KnownPostAddFormatter
+}): Promise<string> {
+  const executionPlan = await resolveFormatterExecutionPlan(
+    input.projectRoot,
+    input.formatter
+  )
+  const formatterArgs =
+    input.formatter === "prettier"
+      ? ["--write"]
+      : input.formatter === "biome"
+        ? ["format", "--write"]
+        : []
+
+  const commandParts =
+    executionPlan.args.length > 0
+      ? [executionPlan.command, ...executionPlan.args]
+      : [executionPlan.displayCommand]
+
+  return [...commandParts, ...formatterArgs, "{files}"].join(" ")
+}
+
+async function detectPackageExecutor(
+  projectRoot: string,
+  packageManager: string | undefined
+): Promise<"bunx" | "npx"> {
+  if (packageManager?.startsWith("bun@")) {
+    return "bunx"
+  }
+
+  if (
+    (await Bun.file(join(projectRoot, "bun.lock")).exists()) ||
+    (await Bun.file(join(projectRoot, "bun.lockb")).exists())
+  ) {
+    return "bunx"
+  }
+
+  return "npx"
 }
 
 function shellEscape(value: string): string {

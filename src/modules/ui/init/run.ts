@@ -10,7 +10,10 @@ import {
 import { select } from "@/terminal/prompts/select"
 import { text } from "@/terminal/prompts/text"
 import { isAbsolute, relative } from "path"
-import { runPostAddUpdateStep } from "../add/services/dependencies"
+import {
+  buildFormatterPostAddCommand,
+  runPostAddUpdateStep,
+} from "../add/services/dependencies"
 import { createUiCopyTask } from "./services/copy-files"
 import { createUiDepsTask } from "./services/dependencies"
 import { createUiInstallTask } from "./services/install-plan"
@@ -35,21 +38,22 @@ export async function runUiInit({
     config,
     uiConfig: loadedUIConfig.data,
   })
+  const projectRoot = getProjectRootFromConfigPath(config.path)
   const postAddUpdateStep = await promptPostAddUpdateStep(
+    projectRoot,
     loadedUIConfig.data.postAddUpdateStep
   )
 
   const tsconfigSelection = await createUiTsconfigTask({ selectedFrameworks })
   await runPostAddUpdateStep({
     postAddUpdateStep,
-    projectRoot: getProjectRootFromConfigPath(config.path),
+    projectRoot,
     changedFilePaths: tsconfigSelection.changedPaths,
   })
   await createUiViteTask({
     codeRoots: selectedFrameworks.map((framework) => framework.codeRoot),
   })
   await createUiCopyTask({ config, copyContexts })
-  const projectRoot = getProjectRootFromConfigPath(config.path)
   await createUiDepsTask({
     config,
     projectRoot,
@@ -103,28 +107,45 @@ export async function runUiInit({
 }
 
 async function promptPostAddUpdateStep(
+  projectRoot: string,
   initial: Awaited<ReturnType<typeof readUIConfig>>["data"]["postAddUpdateStep"]
 ): Promise<
   Awaited<ReturnType<typeof readUIConfig>>["data"]["postAddUpdateStep"]
 > {
+  const prettierCommand = await buildFormatterPostAddCommand({
+    projectRoot,
+    formatter: "prettier",
+  })
+  const oxfmtCommand = await buildFormatterPostAddCommand({
+    projectRoot,
+    formatter: "oxfmt",
+  })
   const selectedType = await select<
     "prettier" | "oxfmt" | "custom-command" | "none"
   >({
     message: "Choose a post component add/update step",
     initialValue: getInitialPostStepChoice(initial),
     options: [
-      { label: "prettier on changed files", value: "prettier" },
-      { label: "oxfmt on changed files", value: "oxfmt" },
+      {
+        label: "prettier on changed files",
+        value: "prettier",
+        hint: prettierCommand,
+      },
+      {
+        label: "oxfmt on changed files",
+        value: "oxfmt",
+        hint: oxfmtCommand,
+      },
       { label: "Custom command", value: "custom-command" },
       { label: "No post add/update step", value: "none" },
     ],
   })
 
   if (selectedType === "prettier") {
-    return "prettier --write {files}"
+    return prettierCommand
   }
   if (selectedType === "oxfmt") {
-    return "oxfmt {files}"
+    return oxfmtCommand
   }
   if (selectedType === "none") {
     return ""
@@ -148,10 +169,18 @@ function getInitialPostStepChoice(
   if (!normalized) {
     return "none"
   }
-  if (normalized === "prettier --write {files}") {
+  if (
+    normalized === "prettier --write {files}" ||
+    normalized === "npx prettier --write {files}" ||
+    normalized === "bunx prettier --write {files}"
+  ) {
     return "prettier"
   }
-  if (normalized === "oxfmt {files}") {
+  if (
+    normalized === "oxfmt {files}" ||
+    normalized === "npx oxfmt {files}" ||
+    normalized === "bunx oxfmt {files}"
+  ) {
     return "oxfmt"
   }
   return "custom-command"
