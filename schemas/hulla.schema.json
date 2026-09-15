@@ -24,12 +24,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "add",
-            "addDev",
-            "uninstall",
-            "upgrade"
-          ],
+          "required": ["add", "addDev", "uninstall", "upgrade"],
           "additionalProperties": false
         },
         "cache": {
@@ -45,35 +40,30 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "scripts",
-        "cache",
-        "cacheDir",
-        "logs"
-      ],
+      "required": ["scripts", "cache", "cacheDir", "logs"],
       "additionalProperties": false
     },
     "configs": {
       "default": {
+        "api": "api.config.ts",
         "ui": ".hulla/ui.json"
       },
       "type": "object",
       "properties": {
+        "api": {
+          "default": "api.config.ts",
+          "type": "string"
+        },
         "ui": {
           "default": ".hulla/ui.json",
           "type": "string"
         }
       },
-      "required": [
-        "ui"
-      ],
+      "required": ["api", "ui"],
       "additionalProperties": false
     }
   },
-  "required": [
-    "cli",
-    "configs"
-  ],
+  "required": ["cli", "configs"],
   "additionalProperties": false,
   "title": "Hulla Config Schema",
   "description": "Configuration schema for Hulla CLI tool"

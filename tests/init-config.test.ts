@@ -44,6 +44,7 @@ describe("hulla config flows", () => {
     const config = await readHullaConfig(dir)
     expect(config?.path).toBe(filePath)
     expect(config?.cli.scripts.add).toBe("bun add")
+    expect(config?.configs.api).toBe("api.config.ts")
   })
 
   test("loads existing project config in check mode without prompting", async () => {

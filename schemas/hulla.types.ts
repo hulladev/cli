@@ -16,6 +16,7 @@ export interface HullaConfigSchema {
     logs: boolean
   }
   configs: {
+    api: string
     ui: string
   }
 }

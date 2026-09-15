@@ -1,3 +1,4 @@
+import { apiModule } from "@/modules/api"
 import { initModule } from "@/modules/init"
 import { installModule } from "@/modules/install"
 import { uiModule } from "@/modules/ui"
@@ -6,6 +7,7 @@ import { configOption, helpFlag, versionFlag, yesFlag } from "./arguments"
 import type { CommandModule } from "./types"
 
 export const commandModules: CommandModule[] = [
+  apiModule,
   installModule,
   initModule,
   uiModule,

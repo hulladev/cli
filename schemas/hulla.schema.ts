@@ -15,11 +15,13 @@ export const cliSchema = z.object({
 })
 
 export const defaultConfigRefs = {
+  api: "api.config.ts",
   ui: ".hulla/ui.json",
 }
 
 export const configRefsSchema = z
   .object({
+    api: z.string().optional().default(defaultConfigRefs.api),
     ui: z.string().optional().default(defaultConfigRefs.ui),
   })
   .optional()

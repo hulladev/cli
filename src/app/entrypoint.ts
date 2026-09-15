@@ -78,6 +78,7 @@ function createPlaceholderConfig(configPath?: unknown): HullaConfig {
         },
       },
       configs: {
+        api: "api.config.ts",
         ui: ".hulla/ui.json",
       },
     },
@@ -93,6 +94,7 @@ function createPlaceholderConfig(configPath?: unknown): HullaConfig {
       logs: true,
     },
     configs: {
+      api: "api.config.ts",
       ui: ".hulla/ui.json",
     },
   }
