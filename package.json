@@ -1,6 +1,6 @@
 {
   "name": "hulla",
-  "version": "0.0.0-alpha.1",
+  "version": "0.0.0-beta.1",
   "description": "CLI tooling for the @hulla ecosystem",
   "author": {
     "name": "Samuel Hulla",
@@ -27,8 +27,12 @@
     "fmt:check": "prettier --check .",
     "test": "bun test",
     "gen:schema": "bun scripts/generate-schema.ts",
-    "build": "bun run gen:schema && bun build --compile ./src/bin/index.ts --outfile ./dist/hulla",
-    "build:targets": "bun run gen:schema && bun build --compile --target=bun-linux-x64 ./src/bin/index.ts --outfile ./dist/hulla-linux && bun build --compile --target=bun-darwin-arm64 ./src/bin/index.ts --outfile ./dist/hulla-macos-arm64 && bun build --compile --target=bun-windows-x64 ./src/bin/index.ts --outfile ./dist/hulla-windows.exe"
+    "gen:schema:check": "node scripts/check-generated-schema.mjs",
+    "build": "rm -rf dist && bun build ./src/bin/index.ts --target=bun --outfile ./dist/bin.js",
+    "verify": "bun run fmt:check && bun run lint && bun run gen:schema:check && bun run test && bun run build",
+    "release": "bun run release:beta",
+    "release:beta": "bun run verify && node scripts/verify-beta-release.mjs && changeset publish --tag beta",
+    "prepack": "bun run build"
   },
   "dependencies": {
     "@clack/prompts": "^1.0.0",

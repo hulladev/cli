@@ -64,6 +64,7 @@ async function generateSchemaAndTypes(task: SchemaTask) {
   }
 
   await Bun.write(task.schemaPath, JSON.stringify(finalSchema, null, 2) + "\n")
+  await $`bun prettier --write ${task.schemaPath}`.quiet()
   console.log(`✓ Generated ${task.schemaPath}`)
 
   await $`bun json2ts -i ${task.schemaPath} -o ${task.typesPath}`.quiet()
