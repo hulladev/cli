@@ -21,6 +21,7 @@ export const uiInstallFrameworkSchema = z.object({
 export const uiInstallSchema = z.object({
   sourceUrl: z.string(),
   libraryName: z.string(),
+  composer: z.enum(["cn", "tailwind-merge"]).optional(),
   codeRoot: z.string().optional(),
   componentsRoot: z.string(),
   copyFilesRoot: z.string(),

@@ -16,6 +16,7 @@ import {
 } from "../add/services/dependencies"
 import { createUiCopyTask } from "./services/copy-files"
 import { createUiDepsTask } from "./services/dependencies"
+import { createUiGlobalStylesTask } from "./services/global-styles"
 import { createUiInstallTask } from "./services/install-plan"
 import { createUiTsconfigTask } from "./services/tsconfig-plan"
 import { createUiViteTask } from "./services/vite"
@@ -50,10 +51,22 @@ export async function runUiInit({
     projectRoot,
     changedFilePaths: tsconfigSelection.changedPaths,
   })
-  await createUiViteTask({
-    codeRoots: selectedFrameworks.map((framework) => framework.codeRoot),
+  const buildConfigPaths = await createUiViteTask({
+    frameworks: selectedFrameworks,
   })
-  await createUiCopyTask({ config, copyContexts })
+  const copySummary = await createUiCopyTask({ config, copyContexts })
+  const globalStylePaths = await createUiGlobalStylesTask({
+    frameworks: selectedFrameworks,
+  })
+  await runPostAddUpdateStep({
+    postAddUpdateStep,
+    projectRoot,
+    changedFilePaths: [
+      ...buildConfigPaths,
+      ...copySummary.changedFilePaths,
+      ...globalStylePaths,
+    ],
+  })
   await createUiDepsTask({
     config,
     projectRoot,
@@ -77,6 +90,7 @@ export async function runUiInit({
   const updatedInstalls = installDrafts.map((draft) => ({
     sourceUrl: draft.sourceUrl,
     libraryName: draft.libraryName,
+    ...(draft.composer ? { composer: draft.composer } : {}),
     codeRoot: draft.codeRoot,
     componentsRoot: draft.componentsRoot,
     copyFilesRoot: draft.copyFilesRoot,

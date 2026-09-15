@@ -9,6 +9,7 @@ export interface UIProjectConfigSchema {
   installs: {
     sourceUrl: string
     libraryName: string
+    composer?: "cn" | "tailwind-merge"
     codeRoot?: string
     componentsRoot: string
     copyFilesRoot: string

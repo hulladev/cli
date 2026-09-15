@@ -14,6 +14,7 @@ export type UISelectedFramework = {
   templateTsconfigPath: string
   outputPath: string
   copyFileDestinations: string[]
+  globalStyleDestinations: string[]
 }
 
 export type TsconfigPatchPlan = {

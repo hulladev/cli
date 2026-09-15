@@ -134,13 +134,16 @@ export async function createUiTsconfigTask({
     }
 
     const rootWorking = await getWorkingTsconfig(workingByPath, rootPath)
-    const referencePaths = frameworkPaths.map(({ path }) =>
-      toReferencePath(rootPath, path)
-    )
-    rootWorking.config = mergeReferencesIntoRoot(
-      rootWorking.config,
-      referencePaths
-    ) as Record<string, unknown>
+    const rootAbsolute = toAbsolutePath(rootPath, cwd)
+    const referencePaths = frameworkPaths
+      .filter(({ path }) => toAbsolutePath(path, cwd) !== rootAbsolute)
+      .map(({ path }) => toReferencePath(rootPath, path))
+    if (referencePaths.length > 0) {
+      rootWorking.config = mergeReferencesIntoRoot(
+        rootWorking.config,
+        referencePaths
+      ) as Record<string, unknown>
+    }
   }
 
   const patches = buildPatchPlans(workingByPath)

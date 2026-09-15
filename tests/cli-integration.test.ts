@@ -74,7 +74,7 @@ describe("cli integration", () => {
       upgrade: "bun update",
     })
     expect(collector.output()).toContain(
-      "outro: @hulla/cli  Project was sucessfully initialized"
+      "outro: @hulla/cli  Project was successfully initialized"
     )
   })
 
@@ -244,7 +244,12 @@ describe("cli integration", () => {
     expect(uiConfig.installs[0]?.frameworks[0]?.name).toBe("react")
     expect(uiConfig.postAddUpdateStep).toBe("")
     expect(tsconfig).toContain('"@/*"')
-    expect(viteConfig).toContain('alias: { "@": "/src" }')
+    expect(viteConfig).toContain(
+      'alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) }'
+    )
+    expect(
+      await readFile(join(dir, "src", "lib", "support.ts"), "utf8")
+    ).toContain('from "@/lib/dependency"')
     expect(collector.output()).toContain(
       "outro: @hulla/cli  UI command executed"
     )
@@ -406,6 +411,59 @@ describe("cli integration", () => {
 
     expect(result.exitCode).toBe(1)
     expect(collector.output()).toContain("exists in multiple frameworks")
+  })
+
+  test("removes an installed component in non-interactive mode", async () => {
+    const dir = await createTempDir("hulla-cli-ui-remove")
+    tempDirs.push(dir)
+    const collector = createTerminalCollector()
+
+    await writeProjectPackageJson(dir, {
+      name: "demo-ui-remove",
+      version: "1.0.0",
+      packageManager: "bun@1.3.9",
+    })
+    await writeHullaConfig(dir)
+    await writeUiConfig(dir, {
+      version: 1,
+      sources: [SINGLE_FIXTURE_PATH],
+      installs: [
+        {
+          sourceUrl: SINGLE_FIXTURE_PATH,
+          libraryName: "fixture-single",
+          codeRoot: "src",
+          componentsRoot: "src/components",
+          copyFilesRoot: "src",
+          frameworks: [
+            {
+              name: "react",
+              templatePath: "react",
+              outputPath: "src/components",
+              tsconfigPath: "tsconfig.json",
+            },
+          ],
+        },
+      ],
+      postAddUpdateStep: "",
+    })
+    const destination = join(dir, "src", "components", "Button")
+    await mkdir(destination, { recursive: true })
+    await writeFile(
+      join(destination, "index.tsx"),
+      "export const Button = true\n"
+    )
+
+    const result = await runCli({
+      argv: ["bun", "hulla", "ui", "remove", "button", "--yes"],
+      runtime: {
+        terminal: collector.terminal,
+        cwd: dir,
+      },
+    })
+
+    expect(result.exitCode).toBe(0)
+    expect(await Bun.file(join(destination, "index.tsx")).exists()).toBeFalse()
+    expect(collector.output()).toContain("UI components removed successfully")
   })
 })
 

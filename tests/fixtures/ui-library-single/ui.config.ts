@@ -4,4 +4,7 @@ export const config = {
   frameworks: {
     react: "react",
   },
+  copyFiles: {
+    shared: [{ src: "lib/support.ts" }],
+  },
 }

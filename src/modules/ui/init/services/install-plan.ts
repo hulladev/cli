@@ -23,6 +23,11 @@ import { existsSync, lstatSync } from "node:fs"
 import { mkdir } from "node:fs/promises"
 import { isAbsolute, join, posix, resolve } from "path"
 import type { UICacheItem } from "schemas/hulla.schema"
+import {
+  promptUIComposer,
+  withComposerDependencies,
+  type UIComposer,
+} from "./composer"
 
 type CreateUiInstallTaskInput = {
   config: HullaConfig
@@ -37,6 +42,7 @@ export type UIInstallDraftFramework = {
 }
 
 export type UIInstallDraft = {
+  composer?: UIComposer
   sourceUrl: string
   libraryName: string
   codeRoot: string
@@ -50,6 +56,7 @@ export type UICopyEntry = {
   dest?: string
   required: boolean
   description?: string
+  globalStyle?: boolean
 }
 
 export type UICopyFrameworkContext = {
@@ -61,9 +68,11 @@ export type UICopyFrameworkContext = {
 }
 
 export type UICopyLibraryContext = {
+  composer?: UIComposer
   sourceUrl: string
   libraryName: string
   rootDir: string
+  codeRoot: string
   componentsRoot: string
   copyFilesRoot: string
   sharedCopyEntries: UICopyEntry[]
@@ -270,6 +279,10 @@ export async function createUiInstallTask({
     const existingInstall = uiConfig.installs.find(
       (install) => install.sourceUrl === lib.url
     )
+    const composer =
+      lib.config.name === "@hulla/ui"
+        ? await promptUIComposer(existingInstall?.composer)
+        : undefined
     codeRoot = await requestProjectPath({
       message: "Code directory root for @/ alias imports:",
       initialValue: existingInstall?.codeRoot ?? codeRoot,
@@ -342,7 +355,10 @@ export async function createUiInstallTask({
         framework.frameworkPath
       )
       for (const [name, version] of Object.entries(
-        frameworkPackageJson?.dependencies ?? {}
+        withComposerDependencies(
+          frameworkPackageJson?.dependencies ?? {},
+          composer
+        )
       )) {
         if (!sharedDependencies.has(name)) {
           sharedDependencies.set(name, version)
@@ -351,6 +367,7 @@ export async function createUiInstallTask({
       for (const [name, version] of Object.entries(
         frameworkPackageJson?.devDependencies ?? {}
       )) {
+        if (composer && (name === "cn" || name === "tailwind-merge")) continue
         if (!sharedDevDependencies.has(name)) {
           sharedDevDependencies.set(name, version)
         }
@@ -364,6 +381,10 @@ export async function createUiInstallTask({
       const allCopyEntries = [...sharedCopyEntries, ...frameworkCopyEntries]
       const frameworkCopyDestinations = getCopyDestinations({
         copyFiles: allCopyEntries,
+        copyFilesRoot,
+      })
+      const globalStyleDestinations = getCopyDestinations({
+        copyFiles: allCopyEntries.filter((entry) => entry.globalStyle),
         copyFilesRoot,
       })
 
@@ -386,6 +407,7 @@ export async function createUiInstallTask({
         templateTsconfigPath: join(framework.frameworkPath, "tsconfig.json"),
         outputPath,
         copyFileDestinations: frameworkCopyDestinations,
+        globalStyleDestinations,
       })
 
       copyFrameworks.push({
@@ -398,6 +420,7 @@ export async function createUiInstallTask({
     }
 
     installDrafts.push({
+      ...(composer ? { composer } : {}),
       sourceUrl: lib.url,
       libraryName: lib.config.name,
       codeRoot,
@@ -407,9 +430,11 @@ export async function createUiInstallTask({
     })
 
     copyContexts.push({
+      ...(composer ? { composer } : {}),
       sourceUrl: lib.url,
       libraryName: lib.config.name,
       rootDir: lib.rootDir,
+      codeRoot,
       componentsRoot,
       copyFilesRoot,
       sharedCopyEntries: copySelection.copyNow
@@ -801,6 +826,7 @@ function normalizeCopyEntries(entries?: UICopyEntry[]): UICopyEntry[] {
         : undefined,
     required: entry.required ?? true,
     description: entry.description,
+    globalStyle: entry.globalStyle,
   }))
 }
 

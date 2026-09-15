@@ -10,9 +10,15 @@ import { spinner } from "@/prompts/spinner"
 import type { HullaConfig } from "@/types"
 import { mkdir } from "node:fs/promises"
 import { dirname, join, posix } from "path"
+import {
+  matchesComposerModule,
+  rewriteComposerModule,
+  type UIComposer,
+} from "./composer"
 import type { UICopyEntry, UICopyLibraryContext } from "./install-plan"
 
 export type UiCopySummary = {
+  changedFilePaths: string[]
   copied: number
   overwritten: number
   skippedExisting: number
@@ -30,6 +36,7 @@ type CreateUiCopyTaskInput = {
 }
 
 type CopyOperation = {
+  composer?: UIComposer
   libraryName: string
   frameworkName: string
   srcRelative: string
@@ -38,6 +45,7 @@ type CopyOperation = {
   srcCandidates: string[]
   destAbsolute: string
   required: boolean
+  codeRoot: string
   componentsRoot: string
   copyFilesRoot: string
 }
@@ -54,6 +62,7 @@ export async function createUiCopyTask({
   copyContexts,
 }: CreateUiCopyTaskInput): Promise<UiCopySummary> {
   const summary: UiCopySummary = {
+    changedFilePaths: [],
     copied: 0,
     overwritten: 0,
     skippedExisting: 0,
@@ -159,6 +168,19 @@ export async function createUiCopyTask({
     const destinationExists =
       existingByDest.get(operation.destAbsolute) === true
     if (destinationExists && !overwriteExisting) {
+      if (
+        operation.composer &&
+        operation.srcRelative === "lib/style.ts" &&
+        !matchesComposerModule(
+          await Bun.file(operation.destAbsolute).text(),
+          operation.composer
+        )
+      ) {
+        s.stop("Selected composer was not applied")
+        throw new Error(
+          `Cannot select ${operation.composer} while keeping the existing ${operation.destRelative}. Rerun ui init and allow the shared helper to be overwritten.`
+        )
+      }
       summary.skippedExisting += 1
       continue
     }
@@ -167,7 +189,11 @@ export async function createUiCopyTask({
 
     const rewriteCandidate = isRewriteCandidate(operation.destRelative)
     if (rewriteCandidate) {
-      const sourceText = await sourceFile.text()
+      const originalSource = await sourceFile.text()
+      const sourceText =
+        operation.composer && operation.srcRelative === "lib/style.ts"
+          ? rewriteComposerModule(originalSource, operation.composer)
+          : originalSource
       const rewriteResult = rewriteAliasedImports(sourceText, {
         mappings: createAliasMappings(operation),
       })
@@ -187,6 +213,7 @@ export async function createUiCopyTask({
     }
 
     summary.copied += 1
+    summary.changedFilePaths.push(operation.destAbsolute)
     if (destinationExists) {
       summary.overwritten += 1
     }
@@ -331,6 +358,7 @@ function createCopyOperation(input: {
   return {
     valid: true,
     value: {
+      composer: input.context.composer,
       libraryName: input.context.libraryName,
       frameworkName: input.frameworkName,
       srcRelative: srcValidation.value,
@@ -339,6 +367,7 @@ function createCopyOperation(input: {
       srcCandidates,
       destAbsolute,
       required: input.entry.required !== false,
+      codeRoot: input.context.codeRoot,
       componentsRoot: input.context.componentsRoot,
       copyFilesRoot: input.context.copyFilesRoot,
     },
@@ -424,7 +453,7 @@ function createAliasMappings(operation: CopyOperation): AliasMapping[] {
 
   mappings.push({
     from: normalizeProjectRelativePath("src/components"),
-    to: normalizeProjectRelativePath(operation.componentsRoot),
+    to: toAliasDestination(operation.componentsRoot, operation.codeRoot),
   })
 
   const sourceDir = dirname(operation.destTemplate)
@@ -432,13 +461,21 @@ function createAliasMappings(operation: CopyOperation): AliasMapping[] {
   if (sourceDir !== "." && targetDir !== ".") {
     mappings.push({
       from: normalizeProjectRelativePath(sourceDir),
-      to: normalizeProjectRelativePath(targetDir),
+      to: toAliasDestination(targetDir, operation.codeRoot),
     })
   }
 
   mappings.push({
     from: normalizeProjectRelativePath(operation.destTemplate),
-    to: normalizeProjectRelativePath(operation.destRelative),
+    to: toAliasDestination(operation.destRelative, operation.codeRoot),
+  })
+
+  // Library copy files are authored from their source code root (normally
+  // `src`) while the consumer alias already points at its configured codeRoot.
+  // Keep more specific component/file mappings above this root fallback.
+  mappings.push({
+    from: normalizeProjectRelativePath("src"),
+    to: toAliasDestination(operation.codeRoot, operation.codeRoot),
   })
 
   const unique = new Map<string, AliasMapping>()
@@ -449,6 +486,19 @@ function createAliasMappings(operation: CopyOperation): AliasMapping[] {
   return Array.from(unique.values()).sort(
     (a, b) => b.from.length - a.from.length
   )
+}
+
+function toAliasDestination(path: string, codeRoot: string): string {
+  const normalizedPath = normalizeProjectRelativePath(path)
+  const normalizedRoot = normalizeProjectRelativePath(codeRoot)
+  const relativePath =
+    normalizedRoot === "."
+      ? normalizedPath
+      : normalizeProjectRelativePath(
+          posix.relative(normalizedRoot, normalizedPath)
+        )
+
+  return relativePath.startsWith("..") ? normalizedPath : relativePath
 }
 
 function rewriteAliasedImports(

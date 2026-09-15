@@ -8,7 +8,7 @@ describe("cli smoke", () => {
     const result = await runCliProcess(["--version"])
 
     expect(result.exitCode).toBe(0)
-    expect(result.output).toContain("hulla v0.0.0-alpha.1")
+    expect(result.output).toContain("hulla v0.0.0-beta.1")
   })
 
   test("returns a parser failure through the real process entrypoint", async () => {

@@ -240,9 +240,10 @@ export async function formatPostAddUpdateDiffPreview(input: {
     return new Map()
   }
 
-  const tempRootParent = join(input.projectRoot, ".hulla", ".tmp")
-  await mkdir(tempRootParent, { recursive: true })
-  const tempRoot = await mkdtemp(join(tempRootParent, "ui-add-preview-"))
+  // Prettier ignores files under hidden directories by default, even when they
+  // are passed explicitly. Keep the preview beside the project sources so it
+  // also discovers the consumer's formatter configuration.
+  const tempRoot = await mkdtemp(join(input.projectRoot, "hulla-ui-preview-"))
 
   try {
     const tempFiles = await Promise.all(
