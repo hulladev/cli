@@ -1,4 +1,5 @@
 import type { ExtendedPrompt } from "@/terminal/prompts/types.prompts"
+/* eslint-disable @typescript-eslint/no-restricted-imports */
 import type {
   AutocompleteMultiSelectOptions,
   ConfirmOptions,
@@ -22,6 +23,7 @@ import {
   spinner as cSpinner,
   text as cText,
 } from "@clack/prompts"
+/* eslint-enable @typescript-eslint/no-restricted-imports */
 import { existsSync, lstatSync, readdirSync } from "node:fs"
 import { dirname, join } from "node:path"
 

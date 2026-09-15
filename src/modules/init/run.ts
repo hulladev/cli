@@ -44,7 +44,7 @@ export async function runInit({
     return commandErr(initResult.error)
   }
 
-  return commandOk("Project was sucessfully initialized", initResult.value)
+  return commandOk("Project was successfully initialized", initResult.value)
 }
 
 export async function ensureProjectConfig(
