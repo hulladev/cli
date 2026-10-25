@@ -14,6 +14,7 @@ import {
   findMatchesForComponent,
   selectMatchingFramework,
 } from "../add/services/selection"
+import { removeComponentStyles } from "../shared/component-styles"
 
 export async function runUiRemove({
   context,
@@ -89,6 +90,11 @@ export async function runUiRemove({
       if (!approved) continue
 
       await rm(destination, { recursive: true, force: false })
+      await removeComponentStyles({
+        projectRoot,
+        frameworks: frameworks.map((framework) => framework.frameworkName),
+        componentRoot: destination,
+      })
       removed.push(componentName)
     }
 

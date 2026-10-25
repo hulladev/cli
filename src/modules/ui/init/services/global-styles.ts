@@ -113,8 +113,8 @@ export function injectGlobalStyleImport(
   return `---\n${statement}\n---\n\n${content}`
 }
 
-function selectHostFramework(
-  frameworks: UISelectedFramework[]
+export function selectHostFramework(
+  frameworks: Pick<UISelectedFramework, "name">[]
 ): "astro" | "react" | "solid" | null {
   const selected = new Set(
     frameworks.map((framework) => framework.name.toLowerCase())
@@ -125,7 +125,7 @@ function selectHostFramework(
   return null
 }
 
-async function findEntryPath(
+export async function findEntryPath(
   projectRoot: string,
   framework: "astro" | "react" | "solid"
 ): Promise<string | null> {

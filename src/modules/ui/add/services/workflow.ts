@@ -18,6 +18,7 @@ import type {
 import { err, ok, type Err, type Ok } from "@hulla/control"
 import { mkdir } from "node:fs/promises"
 import { dirname, join } from "path"
+import { activateComponentStyles } from "../../shared/component-styles"
 import type { AliasRewriteMapping, CreateUiAddTaskInput } from "../types"
 import {
   formatPostAddUpdateDiffPreview,
@@ -285,6 +286,14 @@ export async function createUiAddTask({
       changedFilePaths.add(path)
     }
     summary.copied += supportFilePaths.length
+
+    const stylePaths = await activateComponentStyles({
+      projectRoot,
+      frameworks: frameworkInstalls.map((framework) => framework.frameworkName),
+      components: resolvedComponents,
+    })
+    for (const path of stylePaths) changedFilePaths.add(path)
+    summary.copied += stylePaths.length
 
     if (summary.copied > 0) {
       await installComponentDependencies({
