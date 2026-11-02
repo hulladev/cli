@@ -31,7 +31,7 @@
     "build": "rm -rf dist && bun build ./src/bin/index.ts --target=bun --outfile ./dist/bin.js",
     "verify": "bun run fmt:check && bun run lint && bun run gen:schema:check && bun run test && bun run build",
     "release": "bun run release:beta",
-    "release:beta": "bun run verify && node scripts/verify-beta-release.mjs && changeset publish --tag beta",
+    "release:beta": "bun run verify && node scripts/verify-beta-release.mjs && changeset publish",
     "prepack": "bun run build"
   },
   "dependencies": {
