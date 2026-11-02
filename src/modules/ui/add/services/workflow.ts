@@ -20,6 +20,7 @@ import { mkdir } from "node:fs/promises"
 import { dirname, join } from "path"
 import { activateComponentStyles } from "../../shared/component-styles"
 import type { AliasRewriteMapping, CreateUiAddTaskInput } from "../types"
+import { resolveComponentDependencies } from "./component-dependencies"
 import {
   formatPostAddUpdateDiffPreview,
   installComponentDependencies,
@@ -115,7 +116,7 @@ export async function createUiAddTask({
 
     const missingComponents: string[] = []
     let promptedFrameworkSelections = 0
-    const resolvedComponents: UIAddResolvedComponent[] = []
+    const requestedComponents: UIAddResolvedComponent[] = []
 
     for (const componentInput of requestedComponentInputs) {
       const matches = findMatchesForComponent({
@@ -146,7 +147,7 @@ export async function createUiAddTask({
 
       const canonicalName =
         chosen.componentsByLowerName.get(componentInput) ?? componentInput
-      resolvedComponents.push({
+      requestedComponents.push({
         componentInput,
         componentName: canonicalName,
         sourceUrl: chosen.sourceUrl,
@@ -160,6 +161,11 @@ export async function createUiAddTask({
         copyFilesRoot: chosen.copyFilesRoot,
       })
     }
+
+    const resolvedComponents = await resolveComponentDependencies({
+      components: requestedComponents,
+      frameworkInstalls,
+    })
 
     const projectRoot = getProjectRootFromConfigPath(config.path)
     const changedFilePaths = new Set<string>()
