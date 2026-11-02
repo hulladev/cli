@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { join } from "node:path"
+import packageJson from "../package.json"
 
 const PROJECT_ROOT = join(import.meta.dir, "..")
 
@@ -8,7 +9,7 @@ describe("cli smoke", () => {
     const result = await runCliProcess(["--version"])
 
     expect(result.exitCode).toBe(0)
-    expect(result.output).toContain("hulla v0.0.0-beta.1")
+    expect(result.output).toContain(`hulla v${packageJson.version}`)
   })
 
   test("returns a parser failure through the real process entrypoint", async () => {
