@@ -1,0 +1,12 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "hulla": "0.0.0-beta.1"
+  },
+  "changesets": [
+    "api-lifecycle",
+    "ui-component-dependencies",
+    "ui-theme-activation"
+  ]
+}

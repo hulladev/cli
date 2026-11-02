@@ -1,6 +1,6 @@
 {
   "name": "hulla",
-  "version": "0.0.0-beta.1",
+  "version": "0.0.0-beta.2",
   "description": "CLI tooling for the @hulla ecosystem",
   "author": {
     "name": "Samuel Hulla",
