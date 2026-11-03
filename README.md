@@ -1,6 +1,6 @@
 # hulla
 
-The official CLI for initializing Hulla projects, installing source components from Hulla UI
+The official CLI for initializing projects, installing source components from `@hulla/ui`
 registries, and generating typed `@hulla/api` clients.
 
 This package is beta software. Pin exact versions and use the npm `beta` channel:
@@ -48,6 +48,16 @@ commit `.hulla/.cache`.
 - [CI and non-interactive use](./docs/ci.md)
 - [Troubleshooting, upgrade, and rollback](./docs/troubleshooting.md)
 - [Beta compatibility and release process](./docs/beta-release.md)
+
+## AI agent guidance
+
+The [@hulla/* skills repository](https://github.com/hulladev/skills) contains consumer guidance for the packages your application uses, including `hulla-ui` for installed components and `hulla-api` for API architecture.
+
+```sh
+npx skills add hulladev/skills
+```
+
+This uses the external `skills` CLI. Choose the relevant skills and your coding agent, then follow the [installation and compatibility guide](https://hulla.dev/docs/cli/agent-skills).
 
 ## Development
 
