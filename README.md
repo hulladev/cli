@@ -51,7 +51,7 @@ commit `.hulla/.cache`.
 
 ## AI agent guidance
 
-The [@hulla/* skills repository](https://github.com/hulladev/skills) contains consumer guidance for the packages your application uses, including `hulla-ui` for installed components and `hulla-api` for API architecture.
+The [@hulla/* skills repository](https://github.com/hulladev/skills) contains consumer guidance for the packages your application uses, including `ui` for installed components and `api` for API architecture.
 
 ```sh
 npx skills add hulladev/skills
