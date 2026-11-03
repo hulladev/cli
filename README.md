@@ -3,14 +3,14 @@
 The official CLI for initializing projects, installing source components from `@hulla/ui`
 registries, and generating typed `@hulla/api` clients.
 
-This package is beta software. Pin exact versions and use the npm `beta` channel:
+Pin exact versions for reproducible tooling. Stable releases use npm's `latest` channel:
 
 ```sh
-bunx hulla@0.0.0-beta.1 --version
-npx hulla@0.0.0-beta.1 --version
+bunx hulla@0.1.0 --version
+npx hulla@0.1.0 --version
 ```
 
-Do not install an unqualified `latest` while the `0.0.x-beta.N` line is active.
+Review configuration and installed-source changes when upgrading.
 
 ## Commands
 
@@ -47,11 +47,11 @@ commit `.hulla/.cache`.
 - [API generation commands](./docs/api.md)
 - [CI and non-interactive use](./docs/ci.md)
 - [Troubleshooting, upgrade, and rollback](./docs/troubleshooting.md)
-- [Beta compatibility and release process](./docs/beta-release.md)
+- [Compatibility and release process](./docs/release.md)
 
 ## AI agent guidance
 
-The [@hulla/* skills repository](https://github.com/hulladev/skills) contains consumer guidance for the packages your application uses, including `ui` for installed components and `api` for API architecture.
+The [@hulla/\* skills repository](https://github.com/hulladev/skills) contains consumer guidance for the packages your application uses, including `ui` for installed components and `api` for API architecture.
 
 ```sh
 npx skills add hulladev/skills

@@ -8,7 +8,7 @@
         "@clack/prompts": "^1.0.0",
         "@hulla/args": "^0.0.4",
         "@hulla/control": "^0.0.3",
-        "@hulla/gittar": "^0.0.4",
+        "@hulla/gittar": "^0.0.5",
         "picocolors": "^1.1.1",
         "zod": "^4.2.1",
       },
@@ -162,7 +162,7 @@
 
     "@hulla/control": ["@hulla/control@0.0.3", "", {}, "sha512-63McqzBte48N223OV7CZAQccoyk/9TGbIeal242gay5Sb+JP/SQIpjSxLY3RX0mZYKODZ2oApWUzZhtXiRcu1Q=="],
 
-    "@hulla/gittar": ["@hulla/gittar@0.0.4", "", {}, "sha512-mtY22SN62bAsaF9Iq87+jiSo9NXUOgq5xPMJmLhw1xfGHCkwdsFoC1vxwoDaLYY0BW5P+SKk66v0ZaUeXjS+Mw=="],
+    "@hulla/gittar": ["@hulla/gittar@0.0.5", "", {}, "sha512-pkVh80WB4kXgTs8M9Xbhqb0BBMf5UbmSshePSWPtyysIyULYwaZ7BpisRqEqinm9eyrciMVnmEj3QCarxWo/7w=="],
 
     "@hulla/ui": ["@hulla/ui@0.0.0", "", { "dependencies": { "@hulla/args": "^0.0.2", "typescript": "^5.9.2" }, "bin": { "uigen": "dist/bin/uigen.js" } }, "sha512-WUizJW7ZX0PbiuMmaslBW+Wp9AZCnC8Dr9pqMGUOvT7Fa8UKfVrkRTETBTYf5VAXb/iAF3RcKfw6rOoRN7+exA=="],
 
@@ -784,6 +784,8 @@
 
     "commitizen/fs-extra": ["fs-extra@9.1.0", "", { "dependencies": { "at-least-node": "1.0.0", "graceful-fs": "4.2.11", "jsonfile": "6.1.0", "universalify": "2.0.1" } }, "sha512-hcg3ZmepS30/7BSFqRvoo3DOMQu7IjqxO5nCDt+zM9XWjb33Wg7ziNT+Qvqbuc3+gWpzO02JubVyk2G4Zvo1OQ=="],
 
+    "cosmiconfig-typescript-loader/@types/node": ["@types/node@22.15.30", "", { "dependencies": { "undici-types": "6.21.0" } }, "sha512-6Q7lr06bEHdlfplU6YRbgG1SFBdlsfNC4/lX+SkhiTs0cpJkOElmWls8PxDFv4yY/xKb8Y6SO0OmSX4wgqTZbA=="],
+
     "cz-conventional-changelog/chalk": ["chalk@2.4.2", "", { "dependencies": { "ansi-styles": "3.2.1", "escape-string-regexp": "1.0.5", "supports-color": "5.5.0" } }, "sha512-Mti+f9lpJNcwF4tWV8/OrTTtF1gZi+f8FqlyAdouralcFWFQWF2+NgCHShjkCb+IFBLq9buZwE1xckQU4peSuQ=="],
 
     "cz-emoji/prettier": ["prettier@1.19.1", "", { "bin": { "prettier": "./bin-prettier.js" } }, "sha512-s7PoyDv/II1ObgQunCbB9PdLmUcBZcnWOcxDh7O0N/UwDEsHyqkW+Qh28jW+mVuCdx7gLB0BotYI1Y6uI9iyew=="],
@@ -847,6 +849,8 @@
     "commitizen/fs-extra/jsonfile": ["jsonfile@6.1.0", "", { "dependencies": { "universalify": "2.0.1" }, "optionalDependencies": { "graceful-fs": "4.2.11" } }, "sha512-5dgndWOriYSm5cnYaJNhalLNDKOqFwyDB/rr1E9ZsGciGvKPs8R2xYGCacuf3z6K1YKDz182fd+fY3cn3pMqXQ=="],
 
     "commitizen/fs-extra/universalify": ["universalify@2.0.1", "", {}, "sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw=="],
+
+    "cosmiconfig-typescript-loader/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "cz-conventional-changelog/chalk/ansi-styles": ["ansi-styles@3.2.1", "", { "dependencies": { "color-convert": "1.9.3" } }, "sha512-VT0ZI6kZRdTh8YyJw3SMbYm/u+NqfsAxEpWO0Pf9sq8/e94WxxOpPKx9FR1FlyCtOVDNOQ+8ntlqFxiRc+r5qA=="],
 

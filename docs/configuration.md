@@ -5,7 +5,7 @@ and paths to subsystem configs:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/hulladev/cli/v0.0.0-beta.1/schemas/hulla.schema.json",
+  "$schema": "https://raw.githubusercontent.com/hulladev/cli/v0.1.0/schemas/hulla.schema.json",
   "cli": {
     "scripts": {
       "add": "bun add",

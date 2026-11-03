@@ -8,7 +8,7 @@
   root; update the CLI and regenerate.
 - **TypeScript self-reference:** remove a `references` entry pointing at its own config and use a CLI
   containing the shared-config fix.
-- **Generated API config rejected:** align the packed CLI with the exact `@hulla/api` beta.
+- **Generated API config rejected:** align the packed CLI with the matching `@hulla/api` version.
 - **Stale UI cache:** remove the configured `.hulla/.cache` and rerun against an immutable source.
 - **Copied components are unstyled:** verify the registry marks its theme CSS as `globalStyle`, the
   host config contains `@tailwindcss/vite`, and the application entrypoint imports the copied CSS.
@@ -16,11 +16,11 @@
 
 ## Upgrade
 
-Commit installed/generated source, install an exact newer beta, regenerate through the new packed
+Commit installed/generated source, install an exact newer version, regenerate through the new packed
 CLI, inspect diffs, and run formatting, types, browser tests, and production builds. Upgrade
 `@hulla/ui` first, `hulla` second, then matching API packages.
 
 ## Rollback
 
-Reinstall the prior exact beta and regenerate from its immutable registry tag. Restore the matching
+Reinstall the prior exact version and regenerate from its immutable registry tag. Restore the matching
 API packages and contract output together. Do not hand-revert only part of generated output.

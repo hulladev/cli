@@ -35,6 +35,6 @@ to other components, so removal is conservative; inspect the result and run the 
 
 ## Sources
 
-Use a local generated registry for private dogfood and an immutable GitHub beta tag for public
+Use a local generated registry for private dogfood and an immutable GitHub release tag for public
 consumption. Never import the registry directly from application code. Installed application source
 must build after the registry and CLI are unavailable.
