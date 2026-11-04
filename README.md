@@ -14,6 +14,8 @@ Review configuration and installed-source changes when upgrading.
 
 ## Commands
 
+The command and path improvements below are unreleased; `hulla@0.1.0` does not include them yet.
+
 | Command                         | Purpose                                                                          |
 | ------------------------------- | -------------------------------------------------------------------------------- |
 | `hulla init`                    | Detect the project and create `.hulla/hulla.json`                                |
@@ -24,18 +26,48 @@ Review configuration and installed-source changes when upgrading.
 | `hulla api generate`            | Load and run the configured `@hulla/api` generator                               |
 | `hulla api dev`                 | Generate once and watch declared source inputs                                   |
 
-Use `--yes` for non-interactive execution, `--config <path>` to select a project config, and
-`--framework <name>` when a UI component exists in multiple installed targets.
+Use a verb after each namespace: `ui add`, `ui remove`, `ui init`, or `api init/generate/dev`.
+`hulla`, `hulla ui`, and `hulla api` show help without setting up a project. Use `-h`/`--help`
+at any command level; `-v`/`--version` prints the CLI version.
 
-## First project
+## First component
+
+Run from an existing app directory. The first add configures the project and UI registry before
+installing the requested components; separate `init` commands are optional.
 
 ```sh
-hulla init --yes
-hulla ui init
-hulla ui add --framework astro button dialog tabs
-hulla api init
-hulla api generate
+hulla ui add button dialog
 ```
+
+Setup saves the registry, framework targets, and paths. Later adds reuse them. For a workspace app,
+run from the repository root without changing directories:
+
+```sh
+hulla ui add button dialog --cwd apps/mobile --framework react-native
+```
+
+Use explicit setup options when the defaults do not match your layout:
+
+```sh
+hulla ui add button --source ./registry --framework react \
+  --code-root src --components-root src/components/ui --yes
+```
+
+`--source` replaces the configured source list with that one registry. Passing a setup option on
+`ui add` reruns UI configuration before adding; changing an output root does not move old files.
+`--copy-root` selects the support-file destination and defaults to the code root. Paths are
+project-relative; existing directories and new nested paths are accepted. Traversal outside the
+project, file paths, and control characters are rejected.
+
+`--yes` prohibits prompts and accepts confirmations, including overwrites and removal. Supply
+component names and an explicit `--framework` if detection is ambiguous. Use `--project-config`
+to choose a project config. The older `--config` spelling remains supported for UI and project
+setup; on API commands it selects the generator config. Relative options resolve from `--cwd`
+(or the current directory). Shared options work before or after the relevant subcommand.
+
+`hulla install` and `init --clean` are reserved and fail with an explanation; use your package
+manager for package installation. The existing API generator commands are legacy and require a
+compatible API package; this change does not migrate them to `@hulla/api` 2.0.
 
 Commit `.hulla/hulla.json`, `.hulla/ui.json`, and installed/generated application source. Never
 commit `.hulla/.cache`.
