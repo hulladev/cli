@@ -32,3 +32,11 @@ this structure; manual edits should be limited to intentional source or path cha
 Local sources are relative/absolute filesystem paths. Remote sources are immutable GitHub tree/tag
 URLs. Relative sources resolve from the project root and load the registry's generated
 `ui.config.ts`.
+
+## Select a workspace or custom config
+
+In the unreleased command update, `--cwd apps/mobile` targets that app from the repository root.
+Use `--project-config .hulla/custom.json` to select a project config relative to the selected app.
+The `--config` alias still works for project/UI commands; API commands reserve it for their generator.
+The default cache path is stored as `.hulla/.cache` and resolved from the project root when loaded,
+so configuration and generated schemas contain no checkout-specific default paths.

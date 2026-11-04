@@ -18,7 +18,7 @@ afterEach(async () => {
 })
 
 describe("cli integration", () => {
-  test("reports no command selected for bare hulla", async () => {
+  test("shows available commands for bare hulla", async () => {
     const collector = createTerminalCollector()
 
     const result = await runCli({
@@ -30,7 +30,7 @@ describe("cli integration", () => {
     })
 
     expect(result.exitCode).toBe(0)
-    expect(collector.output()).toContain("outro:No command selected.")
+    expect(collector.output()).toContain("Usage: hulla <command>")
   })
 
   test("initializes config in non-interactive mode", async () => {

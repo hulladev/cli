@@ -9,6 +9,7 @@ import {
   type UIProjectConfig,
 } from "@/lib/ui/config"
 import { resolveUISource } from "@/lib/ui/source"
+import { validateProjectDirectory } from "@/platform/fs/project-path"
 import { box } from "@/prompts/box"
 import { confirm } from "@/prompts/confirm"
 import { log } from "@/prompts/log"
@@ -16,12 +17,13 @@ import { multiselect } from "@/prompts/multiselect"
 import { path } from "@/prompts/path"
 import { select } from "@/prompts/select"
 import { spinner } from "@/prompts/spinner"
+import { isPromptNonInteractive } from "@/terminal/prompts/runtime"
 import type { HullaConfig, UISelectedFramework } from "@/types"
 import { keys } from "@/utils/objects"
 import gittar from "@hulla/gittar"
-import { existsSync, lstatSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { mkdir } from "node:fs/promises"
-import { isAbsolute, join, posix, resolve } from "path"
+import { join, posix, resolve } from "path"
 import type { UICacheItem } from "schemas/hulla.schema"
 import {
   promptUIComposer,
@@ -32,6 +34,13 @@ import {
 type CreateUiInstallTaskInput = {
   config: HullaConfig
   uiConfig: UIProjectConfig
+  options?: {
+    source?: string
+    framework?: string
+    codeRoot?: string
+    componentsRoot?: string
+    copyRoot?: string
+  }
 }
 
 export type UIInstallDraftFramework = {
@@ -105,6 +114,7 @@ type UILibrary = {
 export async function createUiInstallTask({
   config,
   uiConfig,
+  options = {},
 }: CreateUiInstallTaskInput): Promise<{
   selectedFrameworks: UISelectedFramework[]
   installDrafts: UIInstallDraft[]
@@ -113,8 +123,11 @@ export async function createUiInstallTask({
   sharedDevDependencies: string[]
 }> {
   const projectRoot = getProjectRootFromConfigPath(config.path)
-  const libSources =
-    uiConfig.sources.length > 0 ? uiConfig.sources : defaultUISources
+  const libSources = options.source
+    ? [options.source]
+    : uiConfig.sources.length > 0
+      ? uiConfig.sources
+      : defaultUISources
 
   const s = spinner()
   s.start("Fetching UI Libraries...")
@@ -249,7 +262,16 @@ export async function createUiInstallTask({
     })
 
     let selectedFrameworkEntries: typeof frameworkEntries = []
-    if (frameworkEntries.length >= 2) {
+    if (options.framework) {
+      selectedFrameworkEntries = frameworkEntries.filter(
+        (entry) => entry.name.toLowerCase() === options.framework!.toLowerCase()
+      )
+      if (!selectedFrameworkEntries.length) {
+        throw new Error(
+          `Unknown framework "${options.framework}" for ${lib.config.name}. Choose: ${frameworkEntries.map((entry) => entry.name).join(", ")}`
+        )
+      }
+    } else if (frameworkEntries.length >= 2) {
       const selectedIndexes = await multiselect({
         message: `UI Library ${d.highlight(lib.config.name)} ${d.secondary(`(${lib.url})`)} supports the following frameworks. Which ones would you like to use?\n`,
         initialValues,
@@ -286,6 +308,7 @@ export async function createUiInstallTask({
     codeRoot = await requestProjectPath({
       message: "Code directory root for @/ alias imports:",
       initialValue: existingInstall?.codeRoot ?? codeRoot,
+      explicitValue: options.codeRoot,
       projectRoot,
       createIfMissing: true,
       createLabel: "code root directory",
@@ -295,6 +318,7 @@ export async function createUiInstallTask({
       codeRoot,
       projectRoot,
       initialValue: existingInstall?.componentsRoot,
+      explicitValue: options.componentsRoot,
     })
     codeRoot = pathSelection.codeRoot
     const componentsRoot = pathSelection.componentsRoot
@@ -309,11 +333,12 @@ export async function createUiInstallTask({
           config: lib.config,
           selectedFrameworkEntries,
           codeRoot,
-          initialCopyFilesRoot: existingInstall?.copyFilesRoot,
+          initialCopyFilesRoot:
+            options.copyRoot ?? existingInstall?.copyFilesRoot,
           projectRoot,
         })
       : {
-          copyFilesRoot: codeRoot,
+          copyFilesRoot: options.copyRoot ?? codeRoot,
           copyNow: true,
         }
     const copyFilesRoot = copySelection.copyFilesRoot
@@ -483,6 +508,7 @@ async function requestComponentsRoot(input: {
   codeRoot: string
   projectRoot: string
   initialValue?: string
+  explicitValue?: string
 }): Promise<{ componentsRoot: string; codeRoot: string }> {
   let currentCodeRoot = input.codeRoot
 
@@ -495,6 +521,7 @@ async function requestComponentsRoot(input: {
     const componentsRoot = await requestProjectPath({
       message: `Output directory for components from ${d.highlight(input.libraryName)}:`,
       initialValue,
+      explicitValue: input.explicitValue,
       projectRoot: input.projectRoot,
       createIfMissing: true,
       createLabel: "components directory",
@@ -507,6 +534,11 @@ async function requestComponentsRoot(input: {
       }
     }
 
+    if (input.explicitValue !== undefined || isPromptNonInteractive()) {
+      throw new Error(
+        `--components-root must be inside --code-root (${currentCodeRoot}). Use hulla ui init --code-root <path> --components-root <path>.`
+      )
+    }
     log.error(
       `Components path ${d.path(componentsRoot)} must be inside code root ${d.path(currentCodeRoot)}.`
     )
@@ -542,47 +574,36 @@ async function requestComponentsRoot(input: {
 async function requestProjectPath(input: {
   message: string
   initialValue: string
+  explicitValue?: string
   projectRoot: string
   createIfMissing?: boolean
   createLabel?: string
 }): Promise<string> {
-  const result = await path({
-    message: input.message,
-    directory: true,
-    initialValue: input.initialValue,
-    validate: (value) => {
-      const normalized = normalizeProjectRelativePath(value ?? "")
-      if (normalized.length === 0) {
-        return "Path is required"
-      }
-
-      if (isAbsolute(normalized)) {
-        return "Use a project-relative path"
-      }
-
-      const pathOnDisk = resolve(input.projectRoot, normalized)
-      if (existsSync(pathOnDisk)) {
-        try {
-          const stats = lstatSync(pathOnDisk)
-          if (!stats.isDirectory()) {
-            return "Please choose a directory path"
-          }
-        } catch {
-          return "Invalid path"
-        }
-      }
-
-      return undefined
-    },
-  })
-  const normalized = normalizeProjectRelativePath(result)
+  const validate = (value: string | undefined) =>
+    validateProjectDirectory(value ?? "", input.projectRoot)
+  const result =
+    input.explicitValue ??
+    (await path({
+      message: input.message,
+      directory: true,
+      root: input.projectRoot,
+      initialValue: input.initialValue,
+      validate,
+    }))
+  const error = validate(result)
+  if (error) throw new Error(`${input.message} ${error}`)
+  const normalized = normalizeProjectRelativePath(
+    posix.normalize(result.trim().replace(/\\/g, "/"))
+  )
   const pathOnDisk = resolve(input.projectRoot, normalized)
 
   if (input.createIfMissing && !existsSync(pathOnDisk)) {
-    const shouldCreate = await confirm({
-      message: `${input.createLabel ?? "Directory"} ${d.path(normalized)} does not exist. Create it now?`,
-      initialValue: true,
-    })
+    const shouldCreate =
+      input.explicitValue !== undefined ||
+      (await confirm({
+        message: `${input.createLabel ?? "Directory"} ${d.path(normalized)} does not exist. Create it now?`,
+        initialValue: true,
+      }))
 
     if (shouldCreate) {
       await mkdir(pathOnDisk, { recursive: true })
@@ -715,6 +736,11 @@ async function ensureDirectoryIfMissing(input: {
   projectRelativePath: string
   createLabel: string
 }): Promise<string> {
+  const error = validateProjectDirectory(
+    input.projectRelativePath,
+    input.projectRoot
+  )
+  if (error) throw new Error(error)
   const normalized = normalizeProjectRelativePath(input.projectRelativePath)
   const fullPath = resolve(input.projectRoot, normalized)
   if (existsSync(fullPath)) {

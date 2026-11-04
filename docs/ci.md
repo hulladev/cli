@@ -1,14 +1,14 @@
 # CI and non-interactive use
 
+The one-command setup and path flags below require the unreleased command improvements.
+
 Pass `--yes` to prohibit prompts. If a required choice is ambiguous, the command fails with a
 corrective message instead of guessing; pass flags such as `--framework` and explicit components.
 
 Recommended gates:
 
 ```sh
-hulla init --yes
-hulla ui init --yes
-hulla ui add --yes --framework astro button dialog
+hulla ui add button dialog --yes --framework astro --components-root src/components/ui
 hulla api generate --yes
 git diff --exit-code
 bun run check

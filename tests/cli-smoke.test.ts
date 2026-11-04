@@ -16,16 +16,14 @@ describe("cli smoke", () => {
     const result = await runCliProcess(["wat"])
 
     expect(result.exitCode).toBe(1)
-    expect(result.output).toContain(
-      "Unfortunately we encountered the following error"
-    )
+    expect(result.output).toContain("Unhandled argument: wat")
   })
 
-  test("runs a happy-path command through the real process entrypoint", async () => {
-    const result = await runCliProcess(["install"])
+  test("does not pretend the unimplemented install command installed packages", async () => {
+    const result = await runCliProcess(["install", "@hulla/control"])
 
-    expect(result.exitCode).toBe(0)
-    expect(result.output).toContain("Directory exists")
+    expect(result.exitCode).toBe(1)
+    expect(result.output).toContain("hulla install is not implemented")
   })
 })
 

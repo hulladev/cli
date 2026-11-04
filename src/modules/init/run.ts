@@ -15,7 +15,7 @@ import { intro } from "@/terminal/prompts/intro"
 import { log } from "@/terminal/prompts/log"
 import { outro } from "@/terminal/prompts/outro"
 import { err, ok } from "@hulla/control"
-import { dirname } from "node:path"
+import { basename, dirname, resolve } from "node:path"
 import { ConfigSchema } from "schemas/hulla.schema"
 import {
   detectScriptsAndManager,
@@ -92,7 +92,10 @@ export async function initHullaProject(
     }
 
     const { scripts } = await detectScriptsAndManager(packageJson, dir)
-    const outputConfigPath = resolveAbsolute(dir, ".hulla/hulla.json")
+    const outputConfigPath = resolveAbsolute(
+      getCliCwd(),
+      configPath ?? `${dir}/.hulla/hulla.json`
+    )
     const rawConfig: RawHullaConfig = {
       $schema: getSchemaUrl(),
       cli: {
@@ -103,6 +106,7 @@ export async function initHullaProject(
       },
     }
     const parsedConfig = ConfigSchema.parse(rawConfig)
+    parsedConfig.cli.cacheDir = resolve(dir, parsedConfig.cli.cacheDir)
     const config: HullaConfig = {
       ...parsedConfig,
       path: outputConfigPath,
@@ -123,7 +127,8 @@ export function getProjectDirFromConfigOption(configPath?: string): string {
     return getCliCwd()
   }
 
-  return dirname(resolveAbsolute(getCliCwd(), configPath))
+  const configDir = dirname(resolveAbsolute(getCliCwd(), configPath))
+  return basename(configDir) === ".hulla" ? dirname(configDir) : configDir
 }
 
 export const initRunner: CommandModule["run"] = runInit

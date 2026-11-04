@@ -24,8 +24,7 @@ import {
   text as cText,
 } from "@clack/prompts"
 /* eslint-enable @typescript-eslint/no-restricted-imports */
-import { existsSync, lstatSync, readdirSync } from "node:fs"
-import { dirname, join } from "node:path"
+import { getPathSuggestions } from "@/terminal/prompts/path-options"
 
 export type SpinnerHandle = {
   start(message: string): void
@@ -132,7 +131,8 @@ export function applyCliRuntime(input: CliRuntimeOverrides): () => void {
     state.terminal = input.terminal
   }
   if (input.cwd) {
-    state.cwd = typeof input.cwd === "string" ? () => input.cwd : input.cwd
+    const cwd = input.cwd
+    state.cwd = typeof cwd === "string" ? () => cwd : cwd
   }
   if (typeof input.nonInteractive === "boolean") {
     state.nonInteractive = input.nonInteractive
@@ -176,90 +176,12 @@ function createProductionPathPromptAdapter(): PromptAdapter["path"] {
         }
         return undefined
       },
+      filter: () => true,
       options() {
-        const userInput = this.userInput
-        if (userInput === "") {
-          return []
-        }
-
-        try {
-          const options: Array<{
-            value: string
-            label?: string
-            hint?: string
-          }> = []
-
-          if (params.directory) {
-            const inputExists = existsSync(userInput)
-            const inputIsDirectory = inputExists
-              ? lstatSync(userInput).isDirectory()
-              : false
-
-            if (!inputExists || !inputIsDirectory) {
-              options.push({
-                value: userInput,
-                label: userInput,
-                hint: "create directory",
-              })
-            } else {
-              options.push({
-                value: userInput,
-                label: userInput,
-                hint: "use this directory",
-              })
-            }
-          }
-
-          const searchPath = resolveSearchPath(userInput)
-          const items = readdirSync(searchPath)
-            .map((item) => {
-              const fullPath = join(searchPath, item)
-              const stats = lstatSync(fullPath)
-              return {
-                path: fullPath,
-                isDirectory: stats.isDirectory(),
-              }
-            })
-            .filter(({ path, isDirectory }) => {
-              if (!path.startsWith(userInput)) {
-                return false
-              }
-              if (params.directory) {
-                return isDirectory
-              }
-              return true
-            })
-
-          const dynamicOptions = items.map((item) => ({
-            value: item.path,
-          }))
-
-          for (const dynamicOption of dynamicOptions) {
-            if (
-              options.some((option) => option.value === dynamicOption.value)
-            ) {
-              continue
-            }
-            options.push(dynamicOption)
-          }
-
-          return options
-        } catch {
-          return []
-        }
+        return getPathSuggestions(this.userInput, {
+          root: params.root ?? getCliCwd(),
+          directory: params.directory,
+        })
       },
     })
-}
-
-function resolveSearchPath(userInput: string): string {
-  if (!existsSync(userInput)) {
-    return dirname(userInput)
-  }
-
-  const stats = lstatSync(userInput)
-  if (stats.isDirectory()) {
-    return userInput.endsWith("/") ? userInput : dirname(userInput)
-  }
-
-  return dirname(userInput)
 }

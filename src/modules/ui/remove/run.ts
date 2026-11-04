@@ -1,3 +1,4 @@
+import { getStringOption } from "@/app/options"
 import { commandErr, commandOk } from "@/app/result"
 import type { CommandContext, CommandModule, ParserResult } from "@/app/types"
 import {
@@ -108,10 +109,7 @@ export async function runUiRemove({
 }
 
 function resolveExplicitFramework(parserResult: ParserResult): string | null {
-  const value = parserResult.commands.ui.arguments.framework
-  return value?.detected && typeof value.value === "string"
-    ? value.value.trim()
-    : null
+  return getStringOption(parserResult, "framework")?.trim() ?? null
 }
 
 function normalizeComponentInputs(values: string[]): string[] {

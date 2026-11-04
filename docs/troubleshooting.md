@@ -1,5 +1,10 @@
 # Troubleshooting, upgrade, and rollback
 
+The upcoming CLI release includes `hulla doctor` for local integration diagnostics and
+`hulla ui --check` for the UI check alone. They are not included in `hulla@0.1.0`.
+Use `--cwd apps/mobile` to select a workspace app. See [integration checks](./checks.md)
+for what each check validates and the exit statuses to use in CI.
+
 ## Common failures
 
 - **Prompt required with `--yes`:** pass the missing component, framework, config, or source choice.

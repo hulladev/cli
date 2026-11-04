@@ -1,3 +1,4 @@
+import { getStringOption } from "@/app/options"
 import { commandOkMessage } from "@/app/result"
 import type { CommandContext, CommandModule, ParserResult } from "@/app/types"
 import {
@@ -38,6 +39,13 @@ export async function runUiInit({
   } = await createUiInstallTask({
     config,
     uiConfig: loadedUIConfig.data,
+    options: {
+      source: getStringOption(context.parserResult, "source"),
+      framework: getStringOption(context.parserResult, "framework"),
+      codeRoot: getStringOption(context.parserResult, "code-root"),
+      componentsRoot: getStringOption(context.parserResult, "components-root"),
+      copyRoot: getStringOption(context.parserResult, "copy-root"),
+    },
   })
   const projectRoot = getProjectRootFromConfigPath(config.path)
   const postAddUpdateStep = await promptPostAddUpdateStep(
@@ -107,12 +115,17 @@ export async function runUiInit({
   const replacedSourceUrls = new Set(
     updatedInstalls.map((item) => item.sourceUrl)
   )
-  const retainedInstalls = loadedUIConfig.data.installs.filter(
-    (item) => !replacedSourceUrls.has(item.sourceUrl)
-  )
+  const source = getStringOption(context.parserResult, "source")
+  const retainedInstalls =
+    source === undefined
+      ? loadedUIConfig.data.installs.filter(
+          (item) => !replacedSourceUrls.has(item.sourceUrl)
+        )
+      : []
 
   await writeUIConfig(loadedUIConfig.path, {
     ...loadedUIConfig.data,
+    sources: source === undefined ? loadedUIConfig.data.sources : [source],
     installs: [...retainedInstalls, ...updatedInstalls],
     postAddUpdateStep,
   })

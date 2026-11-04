@@ -1,9 +1,9 @@
-import { configOption, helpFlag, yesFlag } from "@/app/arguments"
+import { commonArguments, uiSetupArguments } from "@/app/arguments"
 import { command } from "@hulla/args"
 
 export const uiInitCommand = command({
   name: "init",
   alias: ["i"],
-  description: "Initialize a new UI project",
-  arguments: [helpFlag, yesFlag, configOption],
+  description: "Configure UI sources and output paths",
+  arguments: [...commonArguments, ...uiSetupArguments],
 })

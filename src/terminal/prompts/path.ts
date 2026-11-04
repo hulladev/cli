@@ -9,6 +9,8 @@ type PathPrompt = PathOptions & ExtendedPrompt
 export async function path(params: PathPrompt) {
   if (isPromptNonInteractive()) {
     if ("initialValue" in params && typeof params.initialValue === "string") {
+      const error = params.validate?.(params.initialValue)
+      if (error) throw new Error(String(error))
       return params.initialValue
     }
 
@@ -19,5 +21,8 @@ export async function path(params: PathPrompt) {
     })
   }
 
-  return getCliRuntime().prompts.path(params).then(handleCancel)
+  const value = handleCancel(await getCliRuntime().prompts.path(params))
+  const error = params.validate?.(value)
+  if (error) throw new Error(String(error))
+  return value
 }
