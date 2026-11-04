@@ -18,6 +18,7 @@ import type {
 import { err, ok, type Err, type Ok } from "@hulla/control"
 import { mkdir } from "node:fs/promises"
 import { dirname, join } from "path"
+import { missingComponentMessage } from "../../list/catalog"
 import { activateComponentStyles } from "../../shared/component-styles"
 import type { AliasRewriteMapping, CreateUiAddTaskInput } from "../types"
 import { resolveComponentDependencies } from "./component-dependencies"
@@ -114,6 +115,30 @@ export async function createUiAddTask({
     if (requestedComponentInputs.length === 0) {
       return err(new Error("No components selected."))
     }
+
+    const unknown = requestedComponentInputs.filter(
+      (componentInput) =>
+        !findMatchesForComponent({
+          frameworkInstalls,
+          componentInput,
+          explicitFramework,
+        }).length
+    )
+    if (unknown.length)
+      return err(
+        new Error(
+          await missingComponentMessage({
+            missing: unknown,
+            frameworks: explicitFramework
+              ? frameworkInstalls.filter(
+                  (item) =>
+                    item.frameworkName.toLowerCase() ===
+                    explicitFramework.toLowerCase()
+                )
+              : frameworkInstalls,
+          })
+        )
+      )
 
     const missingComponents: string[] = []
     let promptedFrameworkSelections = 0

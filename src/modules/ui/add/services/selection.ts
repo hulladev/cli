@@ -1,6 +1,5 @@
 import { getStringOption } from "@/app/options"
 import type { HullaConfig, ParserResult } from "@/app/types"
-import type { readUIConfig } from "@/modules/ui/config"
 import {
   getProjectRootFromConfigPath,
   normalizeProjectRelativePath,
@@ -22,6 +21,18 @@ import { dirname, join } from "path"
 import type { UICacheItem } from "schemas/hulla.schema"
 import type { UIProjectConfigSchema } from "schemas/ui.types"
 import type { CachedSource, FrameworkInstall } from "../types"
+
+type FrameworkSourceInstall = Omit<
+  UIProjectConfigSchema["installs"][number],
+  "frameworks"
+> & {
+  frameworks: Array<
+    Pick<
+      UIProjectConfigSchema["installs"][number]["frameworks"][number],
+      "name" | "templatePath" | "outputPath"
+    >
+  >
+}
 
 export function resolveExplicitFramework(input: {
   parserResult: ParserResult
@@ -137,7 +148,7 @@ export async function selectMatchingFramework(
 
 export async function buildFrameworkInstalls(
   config: HullaConfig,
-  installs: Awaited<ReturnType<typeof readUIConfig>>["data"]["installs"]
+  installs: FrameworkSourceInstall[]
 ): Promise<FrameworkInstall[]> {
   const projectRoot = getProjectRootFromConfigPath(config.path)
   const cache = await readUICache(config)
@@ -220,8 +231,8 @@ function normalizeComponentInputs(values: string[]): string[] {
 }
 
 async function resolveFrameworkSourceRoot(input: {
-  install: UIProjectConfigSchema["installs"][number]
-  framework: UIProjectConfigSchema["installs"][number]["frameworks"][number]
+  install: FrameworkSourceInstall
+  framework: FrameworkSourceInstall["frameworks"][number]
   cache: Awaited<ReturnType<typeof readUICache>>
   fetchedRootsBySource: Map<string, CachedSource>
   projectRoot: string
@@ -350,7 +361,7 @@ async function resolveFrameworkSourceRoot(input: {
   }
 }
 
-async function discoverComponentsForFramework(
+export async function discoverComponentsForFramework(
   frameworkRoot: string
 ): Promise<Map<string, string>> {
   const components = new Map<string, string>()
@@ -382,9 +393,7 @@ async function discoverComponentsForFramework(
   return components
 }
 
-function resolveInstallCodeRoot(
-  install: UIProjectConfigSchema["installs"][number]
-): string {
+function resolveInstallCodeRoot(install: FrameworkSourceInstall): string {
   const maybeCodeRoot = (install as Record<string, unknown>).codeRoot
   if (typeof maybeCodeRoot === "string" && maybeCodeRoot.trim().length > 0) {
     return normalizeProjectRelativePath(maybeCodeRoot)

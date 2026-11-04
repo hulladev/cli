@@ -3,6 +3,7 @@ import {
   classifyDependencySpecs,
   extractDependencyName,
 } from "@/modules/ui/shared/dependency-versions"
+import { classifyWorkspaceDevDependencies } from "@/modules/ui/shared/workspace-dependencies"
 import type { PackageJson } from "@/platform/package-json"
 import { d } from "@/terminal/format"
 import { box } from "@/terminal/prompts/box"
@@ -72,9 +73,9 @@ export async function createUiDepsTask({
     toInstall: toInstallDev,
     toUpdate: toUpdateDev,
     satisfied: satisfiedDev,
-  } = classifyDependencySpecs({
+  } = await classifyWorkspaceDevDependencies({
     dependencies: devDependencyMap.entries(),
-    projectPackageJson,
+    projectRoot,
   })
 
   if (

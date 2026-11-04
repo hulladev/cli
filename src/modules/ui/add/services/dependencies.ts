@@ -1,6 +1,7 @@
 import type { HullaConfig } from "@/app/types"
 import { normalizePath } from "@/modules/ui/config"
 import { classifyDependencySpecs } from "@/modules/ui/shared/dependency-versions"
+import { classifyWorkspaceDevDependencies } from "@/modules/ui/shared/workspace-dependencies"
 import type {
   PackageJson,
   PackageManagerDetection,
@@ -81,9 +82,9 @@ export async function installComponentDependencies(input: {
     toInstall: devDepsToInstall,
     toUpdate: devDepsToUpdate,
     satisfied: satisfiedDevDeps,
-  } = classifyDependencySpecs({
+  } = await classifyWorkspaceDevDependencies({
     dependencies: devDepsMap.entries(),
-    projectPackageJson,
+    projectRoot: input.projectRoot,
   })
 
   const hasAnythingToInstall =
@@ -243,7 +244,7 @@ export async function formatPostAddUpdateDiffPreview(input: {
 }): Promise<Map<string, string>> {
   const configuredCommand = input.postAddUpdateStep.trim()
   const knownFormatter = parseKnownPostAddFormatter(configuredCommand)
-  if (!knownFormatter || input.files.length === 0) {
+  if (!configuredCommand || input.files.length === 0) {
     return new Map()
   }
 
@@ -268,7 +269,7 @@ export async function formatPostAddUpdateDiffPreview(input: {
       })
     )
 
-    try {
+    if (knownFormatter) {
       await runKnownPostAddFormatter({
         formatter: knownFormatter,
         projectRoot: input.projectRoot,
@@ -276,8 +277,18 @@ export async function formatPostAddUpdateDiffPreview(input: {
         stdout: "ignore",
         stderr: "ignore",
       })
-    } catch {
-      return new Map()
+    } else {
+      await runShellPostAddUpdateCommand({
+        projectRoot: input.projectRoot,
+        script: buildShellPostAddUpdateCommand(
+          configuredCommand,
+          tempFiles.map((file) =>
+            normalizePath(relative(input.projectRoot, file.tempPath))
+          )
+        ),
+        stdout: "ignore",
+        stderr: "inherit",
+      })
     }
 
     const formattedByPath = new Map<string, string>()

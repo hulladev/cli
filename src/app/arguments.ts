@@ -75,5 +75,9 @@ export const uiSetupArguments = [
       "Component output directory (default: <code-root>/components)",
     ],
     ["copy-root", "Support-file output directory (default: <code-root>)"],
+    [
+      "post-add-command",
+      "Explicit changed-file command using {files}; use none to disable",
+    ],
   ].map(([name, description]) => option({ name, short: [], description })),
 ]

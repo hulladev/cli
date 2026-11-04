@@ -200,6 +200,16 @@ export async function runCli({
       }
     }
     if (detectedCommand.name === "ui") {
+      const postAddCommand = getStringOption(parserResult, "post-add-command")
+      if (
+        postAddCommand !== undefined &&
+        postAddCommand !== "none" &&
+        !postAddCommand.includes("{files}")
+      ) {
+        throw new Error(
+          "--post-add-command must contain {files}, or be none to disable the step."
+        )
+      }
       for (const name of ["source", "framework"]) {
         const value = getStringOption(parserResult, name)
         if (value !== undefined && !value.trim())
@@ -219,13 +229,19 @@ export async function runCli({
     const removingUI =
       detectedCommand.name === "ui" &&
       parserResult.commands.ui.commands.remove.detected
+    const browsingUI =
+      detectedCommand.name === "ui" &&
+      parserResult.commands.ui.commands.list.detected
     const config = checking
       ? createPlaceholderConfig(projectConfig)
       : removingUI
         ? await readHullaConfig(getCliCwd(), projectConfig)
-        : detectedCommand.requiresProjectConfig
-          ? await ensureProjectConfig(projectConfig)
-          : createPlaceholderConfig(projectConfig)
+        : browsingUI
+          ? ((await readHullaConfig(getCliCwd(), projectConfig)) ??
+            createPlaceholderConfig(projectConfig))
+          : detectedCommand.requiresProjectConfig
+            ? await ensureProjectConfig(projectConfig)
+            : createPlaceholderConfig(projectConfig)
     if (!config)
       throw new Error(
         "No UI configuration found. There are no configured components to remove."

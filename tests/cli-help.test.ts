@@ -25,6 +25,7 @@ const commands = [
   "ui init",
   "ui add",
   "ui remove",
+  "ui list",
 ]
 
 async function requestHelp(args: string[]) {
@@ -70,6 +71,7 @@ describe("cli help", () => {
     ["ui i", "ui init"],
     ["ui a", "ui add"],
     ["ui r", "ui remove"],
+    ["ui search", "ui list"],
   ])("alias '%s' shows canonical help for '%s'", async (alias, path) => {
     const output = await requestHelp([...alias.split(" "), "--help"])
     expect(output).toContain(`Usage: hulla ${path} `)

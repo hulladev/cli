@@ -58,28 +58,38 @@ export function getCommandHelp(result: ParserResult): string {
   const aliases = names(definition.alias)
 
   const examples =
-    path[1] === "ui"
+    path[1] === "ui" && path[2] === "list"
       ? [
-          "hulla ui add button dialog",
-          "hulla ui add button --framework react-native --cwd apps/mobile",
-          "hulla ui init --components-root src/components/ui",
-          "hulla ui --check --cwd apps/mobile",
+          "hulla ui list --framework react-native",
+          "hulla ui search text --framework react-native",
+          "hulla ui list --source ./my-registry",
         ]
-      : path[1] === "api"
+      : path[1] === "ui"
         ? [
-            "hulla api init",
-            "hulla api generate",
-            "hulla api dev --cwd apps/server",
-            "hulla api --check --cwd apps/server",
+            "hulla ui add button dialog",
+            "hulla ui add button --framework react-native --cwd apps/mobile",
+            "hulla ui init --components-root src/components/ui",
+            "hulla ui --check --cwd apps/mobile",
           ]
-        : path[1] === "doctor"
-          ? ["hulla doctor", "hulla doctor --cwd apps/mobile"]
-          : ["style", "db", "control"].includes(path[1])
-            ? [
-                `hulla ${path[1]} --check`,
-                `hulla ${path[1]} --check --cwd apps/server`,
-              ]
-            : ["hulla ui add button dialog", "hulla doctor", "hulla ui --check"]
+        : path[1] === "api"
+          ? [
+              "hulla api init",
+              "hulla api generate",
+              "hulla api dev --cwd apps/server",
+              "hulla api --check --cwd apps/server",
+            ]
+          : path[1] === "doctor"
+            ? ["hulla doctor", "hulla doctor --cwd apps/mobile"]
+            : ["style", "db", "control"].includes(path[1])
+              ? [
+                  `hulla ${path[1]} --check`,
+                  `hulla ${path[1]} --check --cwd apps/server`,
+                ]
+              : [
+                  "hulla ui add button dialog",
+                  "hulla doctor",
+                  "hulla ui --check",
+                ]
 
   return [
     `Usage: ${usage}`,

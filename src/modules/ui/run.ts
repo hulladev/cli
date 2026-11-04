@@ -5,6 +5,7 @@ import { d } from "@/terminal/format"
 import { log } from "@/terminal/prompts/log"
 import { runUiAdd } from "./add/run"
 import { runUiInit } from "./init/run"
+import { runUiList } from "./list/run"
 import { runUiRemove } from "./remove/run"
 import { isUIConfigured } from "./shared/is-ui-configured"
 
@@ -15,6 +16,8 @@ export async function runUi({
   context: CommandContext
   result: ParserResult["commands"]["ui"]
 }) {
+  if (result.commands.list.detected)
+    return runUiList({ context, result: result.commands.list })
   const uiConfigured = await isUIConfigured(context.config)
   if (result.commands.remove.detected && !uiConfigured) {
     return commandErr(
@@ -40,6 +43,7 @@ export async function runUi({
     "code-root",
     "components-root",
     "copy-root",
+    "post-add-command",
   ].some((name) => getStringOption(context.parserResult, name) !== undefined)
   if (setupRequested && result.commands.remove.detected) {
     return commandErr(

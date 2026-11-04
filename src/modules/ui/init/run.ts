@@ -15,6 +15,11 @@ import {
   buildFormatterPostAddCommand,
   runPostAddUpdateStep,
 } from "../add/services/dependencies"
+import {
+  buildFrameworkInstalls,
+  findMatchesForComponent,
+} from "../add/services/selection"
+import { missingComponentMessage } from "../list/catalog"
 import { createUiCopyTask } from "./services/copy-files"
 import { createUiDepsTask } from "./services/dependencies"
 import { createUiGlobalStylesTask } from "./services/global-styles"
@@ -47,11 +52,42 @@ export async function runUiInit({
       copyRoot: getStringOption(context.parserResult, "copy-root"),
     },
   })
+  // A first-use add must validate its names against the selected library before
+  // initialization writes aliases, bootstrap files, styles, or dependencies.
+  const adding = context.parserResult.commands.ui.commands.add
+  const values = adding.arguments.components?.value
+  if (adding.detected && Array.isArray(values) && values.length) {
+    const frameworks = await buildFrameworkInstalls(config, installDrafts)
+    const explicitFramework =
+      getStringOption(context.parserResult, "framework") ?? null
+    const missing = values
+      .map((value: string) => value.trim().toLowerCase())
+      .filter(
+        (componentInput: string) =>
+          componentInput &&
+          !findMatchesForComponent({
+            frameworkInstalls: frameworks,
+            componentInput,
+            explicitFramework,
+          }).length
+      )
+    if (missing.length)
+      throw new Error(await missingComponentMessage({ missing, frameworks }))
+  }
   const projectRoot = getProjectRootFromConfigPath(config.path)
-  const postAddUpdateStep = await promptPostAddUpdateStep(
-    projectRoot,
-    loadedUIConfig.data.postAddUpdateStep
+  const explicitPostAdd = getStringOption(
+    context.parserResult,
+    "post-add-command"
   )
+  const postAddUpdateStep =
+    explicitPostAdd === undefined
+      ? await promptPostAddUpdateStep(
+          projectRoot,
+          loadedUIConfig.data.postAddUpdateStep
+        )
+      : explicitPostAdd === "none"
+        ? ""
+        : explicitPostAdd.trim()
 
   const tsconfigSelection = await createUiTsconfigTask({ selectedFrameworks })
   await runPostAddUpdateStep({
