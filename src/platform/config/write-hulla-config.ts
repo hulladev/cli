@@ -1,18 +1,23 @@
-import { getCliCwd, requestCliExit } from "@/app/runtime"
+import { requestCliExit } from "@/app/runtime"
 import type { HullaConfig } from "@/app/types"
 import { writeJsonFile } from "@/platform/fs/bun"
 import { omit } from "@/shared/utils/objects"
 import { d } from "@/terminal/format"
 import { log } from "@/terminal/prompts/log"
-import { join } from "path"
-import { ConfigSchema } from "schemas/hulla.schema"
+import { resolve } from "node:path"
+import { ConfigSchema, DEFAULT_CACHE_DIR } from "schemas/hulla.schema"
 import type { HullaConfigSchema } from "schemas/hulla.types"
+import { getProjectRootFromConfigPath } from "./resolve-hulla-config"
 
 /**
  * Remove default values from config to keep JSON clean
  * Returns object with $schema first to ensure it appears first in JSON
  */
-function removeDefaults(config: HullaConfigSchema): {
+function removeDefaults(
+  config: HullaConfigSchema,
+  filePath: string,
+  originalCacheDir?: string
+): {
   $schema?: string
   cli: {
     scripts: HullaConfigSchema["cli"]["scripts"]
@@ -22,7 +27,9 @@ function removeDefaults(config: HullaConfigSchema): {
   }
   configs?: HullaConfigSchema["configs"]
 } {
-  const defaultCacheDir = join(getCliCwd(), ".hulla/.cache")
+  const root = getProjectRootFromConfigPath(resolve(filePath))
+  const cacheDir = resolve(root, config.cli.cacheDir)
+  const defaultCacheDir = resolve(root, DEFAULT_CACHE_DIR)
   const cli: {
     scripts: HullaConfigSchema["cli"]["scripts"]
     cache?: boolean
@@ -36,8 +43,12 @@ function removeDefaults(config: HullaConfigSchema): {
   if (config.cli.cache !== true) {
     cli.cache = config.cli.cache
   }
-  if (config.cli.cacheDir !== defaultCacheDir) {
-    cli.cacheDir = config.cli.cacheDir
+  if (cacheDir !== defaultCacheDir) {
+    cli.cacheDir =
+      originalCacheDir !== undefined &&
+      resolve(root, originalCacheDir) === cacheDir
+        ? originalCacheDir
+        : config.cli.cacheDir
   }
   if (config.cli.logs !== true) {
     cli.logs = config.cli.logs
@@ -79,7 +90,11 @@ export async function writeConfig(
     )
     requestCliExit(1)
   }
-  const dataToWrite = removeDefaults(validatedConfig.data)
+  const dataToWrite = removeDefaults(
+    validatedConfig.data,
+    filePath,
+    "rawConfig" in config ? config.rawConfig.cli.cacheDir : undefined
+  )
 
   await writeJsonFile(filePath, dataToWrite, true)
 }

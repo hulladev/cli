@@ -6,6 +6,7 @@ import type {
   ParserResult,
   RawHullaConfig,
 } from "@/app/types"
+import { resolveHullaConfig } from "@/platform/config/resolve-hulla-config"
 import { writeConfig } from "@/platform/config/write-hulla-config"
 import { resolveAbsolute } from "@/platform/fs/bun"
 import { getSchemaUrl } from "@/shared/constants"
@@ -16,7 +17,6 @@ import { log } from "@/terminal/prompts/log"
 import { outro } from "@/terminal/prompts/outro"
 import { err, ok } from "@hulla/control"
 import { dirname } from "node:path"
-import { ConfigSchema } from "schemas/hulla.schema"
 import {
   detectScriptsAndManager,
   getInitConfirmationAndPackageJson,
@@ -102,12 +102,7 @@ export async function initHullaProject(
         ui: ".hulla/ui.json",
       },
     }
-    const parsedConfig = ConfigSchema.parse(rawConfig)
-    const config: HullaConfig = {
-      ...parsedConfig,
-      path: outputConfigPath,
-      rawConfig,
-    }
+    const config = resolveHullaConfig(rawConfig, outputConfigPath)
 
     log.info(`Writing config to ${d.path(outputConfigPath)}`)
     await writeConfig(config, outputConfigPath)

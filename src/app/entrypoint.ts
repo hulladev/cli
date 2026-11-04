@@ -1,8 +1,9 @@
 import { ensureProjectConfig } from "@/modules/init"
+import { resolveHullaConfig } from "@/platform/config/resolve-hulla-config"
 import { resolveAbsolute } from "@/platform/fs/bun"
 import { resetIntroState } from "@/terminal/prompts/intro"
 import { ParserError } from "@hulla/args"
-import { dirname, join } from "node:path"
+import { join } from "node:path"
 import packageJson from "../../package.json"
 import {
   configureContextRuntime,
@@ -64,11 +65,8 @@ function createPlaceholderConfig(configPath?: unknown): HullaConfig {
     typeof configPath === "string"
       ? resolveAbsolute(cwd, configPath)
       : join(cwd, ".hulla", "hulla.json")
-  const projectRoot = dirname(resolvedPath)
-
-  return {
-    path: resolvedPath,
-    rawConfig: {
+  return resolveHullaConfig(
+    {
       cli: {
         scripts: {
           add: "bun add",
@@ -82,22 +80,8 @@ function createPlaceholderConfig(configPath?: unknown): HullaConfig {
         ui: ".hulla/ui.json",
       },
     },
-    cli: {
-      scripts: {
-        add: "bun add",
-        addDev: "bun add -D",
-        uninstall: "bun remove",
-        upgrade: "bun update",
-      },
-      cache: true,
-      cacheDir: join(projectRoot, ".cache"),
-      logs: true,
-    },
-    configs: {
-      api: "api.config.ts",
-      ui: ".hulla/ui.json",
-    },
-  }
+    resolvedPath
+  )
 }
 
 export async function runCli({

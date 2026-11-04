@@ -32,7 +32,7 @@
           "type": "boolean"
         },
         "cacheDir": {
-          "default": "/Users/samuel/Coding/hulla/cli/.hulla/.cache",
+          "default": ".hulla/.cache",
           "type": "string"
         },
         "logs": {

@@ -1,6 +1,6 @@
-import { getCliCwd } from "@/app/runtime"
-import { join } from "path"
 import { z } from "zod"
+
+export const DEFAULT_CACHE_DIR = ".hulla/.cache"
 
 export const cliSchema = z.object({
   scripts: z.object({
@@ -10,7 +10,7 @@ export const cliSchema = z.object({
     upgrade: z.string(),
   }),
   cache: z.boolean().optional().default(true),
-  cacheDir: z.string().optional().default(join(getCliCwd(), ".hulla/.cache")),
+  cacheDir: z.string().optional().default(DEFAULT_CACHE_DIR),
   logs: z.boolean().optional().default(true),
 })
 
