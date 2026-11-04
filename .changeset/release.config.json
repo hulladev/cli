@@ -1,0 +1,8 @@
+{
+  "repository": "hulladev/cli",
+  "title": "hulla CLI",
+  "packageManager": "bun",
+  "packages": ["."],
+  "smokeImports": [],
+  "smokeDependencies": []
+}
