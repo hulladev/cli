@@ -25,8 +25,11 @@ The command and path improvements below are unreleased; `hulla@0.1.0` does not i
 | `hulla api init`                | Scaffold a framework adapter and API generation config without overwriting files |
 | `hulla api generate`            | Load and run the configured `@hulla/api` generator                               |
 | `hulla api dev`                 | Generate once and watch declared source inputs                                   |
+| `hulla ui --check`              | Validate UI setup; `style`, `api`, `db`, and `control` also support `--check`    |
+| `hulla doctor`                  | Detect installed integrations across workspaces and run their checks             |
 
-Use a verb after each namespace: `ui add`, `ui remove`, `ui init`, or `api init/generate/dev`.
+For setup or generation, use a verb after the namespace: `ui add`, `ui remove`, `ui init`, or
+`api init/generate/dev`. Use a namespace's `--check` for read-only integration validation.
 `hulla`, `hulla ui`, and `hulla api` show help without setting up a project. Use `-h`/`--help`
 at any command level; `-v`/`--version` prints the CLI version.
 
@@ -74,6 +77,7 @@ commit `.hulla/.cache`.
 
 ## Documentation
 
+- [Read-only integration checks and doctor](./docs/checks.md)
 - [Project and UI configuration](./docs/configuration.md)
 - [UI registry commands](./docs/ui.md)
 - [API generation commands](./docs/api.md)
