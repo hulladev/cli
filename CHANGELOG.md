@@ -1,5 +1,11 @@
 # hulla
 
+## 0.3.0
+
+### Minor Changes
+
+- 8e7835d: Install generated on-demand UI support files only with their consuming components, including transitive dependencies. Keep existing support files and relocate their imports consistently.
+
 ## 0.2.0
 
 ### Minor Changes
