@@ -126,6 +126,50 @@ describe("cli integration", () => {
     expect(config.cli.scripts.uninstall).toBe("bun remove")
   })
 
+  test("inherits the workspace manager when initializing an app with --yes", async () => {
+    const root = await createTempDir("hulla-cli-workspace")
+    tempDirs.push(root)
+    const app = join(root, "apps", "mobile")
+    await mkdir(app, { recursive: true })
+    await writeProjectPackageJson(root, {
+      name: "workspace",
+      workspaces: ["apps/*"],
+      packageManager: "bun@1.4.0",
+    })
+    await writeProjectPackageJson(app, { name: "mobile" })
+    // A stray app lockfile must not override the workspace's explicit choice.
+    await writeFile(join(app, "package-lock.json"), "{}")
+    const collector = createTerminalCollector()
+
+    const result = await runCli({
+      argv: ["bun", "hulla", "init", "--yes"],
+      runtime: { terminal: collector.terminal, cwd: app },
+    })
+
+    expect(result.exitCode).toBe(0)
+    const config = await Bun.file(join(app, ".hulla/hulla.json")).json()
+    expect(config.cli.scripts.add).toBe("bun add")
+    expect(collector.output()).toContain(join(root, "package.json"))
+    expect(collector.output()).toContain("package-lock.json")
+    expect(await Bun.file(join(root, ".hulla/hulla.json")).exists()).toBe(false)
+  })
+
+  test("does not silently select npm when --yes has no manager evidence", async () => {
+    const dir = await createTempDir("hulla-cli-no-manager")
+    tempDirs.push(dir)
+    await writeProjectPackageJson(dir, { name: "unknown-manager" })
+    const collector = createTerminalCollector()
+
+    const result = await runCli({
+      argv: ["bun", "hulla", "init", "--yes"],
+      runtime: { terminal: collector.terminal, cwd: dir },
+    })
+
+    expect(result.exitCode).not.toBe(0)
+    expect(collector.output()).toContain("packageManager")
+    expect(await Bun.file(join(dir, ".hulla/hulla.json")).exists()).toBe(false)
+  })
+
   test("captures manual init script values through scripted prompts", async () => {
     const dir = await createTempDir("hulla-cli-manual")
     tempDirs.push(dir)
