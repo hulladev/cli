@@ -9,6 +9,6 @@ export const packagesSequence = infiniteSequence({
 export const installCommand = command({
   name: "install",
   alias: ["i", "add"],
-  description: "Install a package",
+  description: "Check that the selected project directory exists",
   arguments: [...commonArguments, packagesSequence],
 })

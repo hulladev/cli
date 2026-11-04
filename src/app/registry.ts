@@ -15,7 +15,7 @@ export const commandModules: CommandModule[] = [
   ...checkModules,
 ]
 
-export const cli = parser({
+export const cliDefinition = {
   name: "hulla",
   settings: {
     startIndex: 2,
@@ -23,4 +23,6 @@ export const cli = parser({
   },
   arguments: [versionFlag, checkFlag, ...commonArguments],
   commands: commandModules.map((module) => module.definition) as unknown as [],
-})
+}
+
+export const cli = parser(cliDefinition)

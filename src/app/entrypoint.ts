@@ -39,7 +39,7 @@ async function runGlobalArguments(
   if (
     detectedNodes(parserResult).some((node) => node.arguments.help?.detected)
   ) {
-    terminal.outro(getCommandHelp(parserResult))
+    terminal.log.info(getCommandHelp(parserResult))
     return 0
   }
 
@@ -157,7 +157,7 @@ export async function runCli({
     const mode = resolveInvocationMode(detectedCommand)
 
     if (mode !== "command" || !detectedCommand) {
-      terminal.outro(getCommandHelp(parserResult))
+      terminal.log.info(getCommandHelp(parserResult))
       return { exitCode: 0 }
     }
 
@@ -166,7 +166,7 @@ export async function runCli({
       !checking &&
       detectedNodes(parserResult).length === 2
     ) {
-      terminal.outro(getCommandHelp(parserResult))
+      terminal.log.info(getCommandHelp(parserResult))
       return { exitCode: 0 }
     }
     if (

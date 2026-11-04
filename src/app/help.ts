@@ -1,95 +1,129 @@
-import { checkFlag, commonArguments, versionFlag } from "./arguments"
-import { detectedNodes } from "./options"
-import { commandModules } from "./registry"
+import type { ParserConfig } from "@hulla/args"
+import { cliDefinition } from "./registry"
 import type { ParserResult } from "./types"
 
-type HelpArgument = {
-  name: string
-  type: string
-  description?: string
-  short?: string | string[]
-}
-type HelpCommand = {
-  name: string
+type HelpDefinition = Pick<ParserConfig, "name" | "arguments"> & {
   description?: string
   alias?: string | string[]
-  arguments: HelpArgument[]
-  commands: HelpCommand[]
+  commands?: HelpDefinition[]
 }
 
+function names(value?: string | string[]): string[] {
+  return value === undefined ? [] : Array.isArray(value) ? value : [value]
+}
+
+function section(title: string, rows: [string, string][]): string {
+  if (rows.length === 0) return ""
+  const width = Math.max(...rows.map(([label]) => label.length))
+  return `${title}:\n${rows
+    .map(([label, description]) =>
+      `  ${label.padEnd(width)}  ${description}`.trimEnd()
+    )
+    .join("\n")}`
+}
+
+/** Resolve help before config loading or command execution, at any command depth. */
 export function getCommandHelp(result: ParserResult): string {
-  const root: HelpCommand = {
-    name: "hulla",
-    description:
-      "Configure projects, install UI source, and generate API clients.",
-    arguments: [versionFlag, checkFlag, ...commonArguments],
-    commands: commandModules
-      .filter((module) => module.name !== "install")
-      .map((module) => module.definition as HelpCommand),
-  }
-  let current = root
-  const names = ["hulla"]
-  let parent = result.commands
-  for (const node of detectedNodes(result).slice(1)) {
-    const selected = current.commands.find(
-      (command) => parent[command.name] === node
+  const root: HelpDefinition = cliDefinition
+  let definition = root
+  let node: Pick<ParserResult, "arguments" | "commands"> = result
+  const path = [root.name]
+
+  while (true) {
+    const child = definition.commands?.find(
+      (command) => node.commands[command.name]?.detected
     )
-    if (!selected) break
-    names.push(selected.name)
-    current = selected
-    parent = node.commands
+    if (!child) break
+    node = node.commands[child.name]
+    definition = child
+    path.push(child.name)
   }
-  const positionals = current.arguments
-    .filter((arg) => arg.type === "infiniteSequence")
-    .map((arg) => `[${arg.name}…]`)
-  const lines = [
-    current.description ?? "",
-    "",
-    `Usage: ${names.join(" ")}${current.commands.length ? " <command>" : ""}${positionals.length ? ` ${positionals.join(" ")}` : ""} [options]`,
-  ]
-  if (current.commands.length) {
-    lines.push(
-      "",
-      "Commands:",
-      ...current.commands.map(
-        (command) => `  ${command.name.padEnd(16)} ${command.description ?? ""}`
-      )
-    )
-  }
-  lines.push(
-    "",
-    "Options:",
-    ...current.arguments
-      .filter((arg) => arg.type === "flag" || arg.type === "option")
-      .map((arg) => {
-        const short = Array.isArray(arg.short) ? arg.short[0] : arg.short
-        const label = `${short ? `-${short}, ` : "    "}--${arg.name}${arg.type === "option" ? " <value>" : ""}`
-        return `  ${label.padEnd(33)} ${arg.description ?? ""}`
-      })
+
+  const args = definition.arguments ?? []
+  const options = args.filter(
+    (arg) => arg.type === "flag" || arg.type === "option"
   )
+  const positional = args.filter(
+    (arg) => arg.type !== "flag" && arg.type !== "option"
+  )
+  const commands = definition.commands ?? []
+  const positionLabel = (arg: (typeof args)[number]) =>
+    `[${arg.name}${arg.type === "infiniteSequence" ? "..." : ""}]`
+  const usage = [
+    ...path,
+    ...(commands.length ? ["<command>"] : []),
+    ...positional.map(positionLabel),
+    ...(options.length ? ["[options]"] : []),
+  ].join(" ")
+  const aliases = names(definition.alias)
+
   const examples =
-    names[1] === "ui"
+    path[1] === "ui"
       ? [
           "hulla ui add button dialog",
           "hulla ui add button --framework react-native --cwd apps/mobile",
           "hulla ui init --components-root src/components/ui",
           "hulla ui --check --cwd apps/mobile",
         ]
-      : names[1] === "api"
+      : path[1] === "api"
         ? [
             "hulla api init",
             "hulla api generate",
             "hulla api dev --cwd apps/server",
             "hulla api --check --cwd apps/server",
           ]
-        : names[1] === "doctor"
+        : path[1] === "doctor"
           ? ["hulla doctor", "hulla doctor --cwd apps/mobile"]
-          : ["style", "db", "control"].includes(names[1])
+          : ["style", "db", "control"].includes(path[1])
             ? [
-                `hulla ${names[1]} --check`,
-                `hulla ${names[1]} --check --cwd apps/server`,
+                `hulla ${path[1]} --check`,
+                `hulla ${path[1]} --check --cwd apps/server`,
               ]
             : ["hulla ui add button dialog", "hulla doctor", "hulla ui --check"]
-  lines.push("", "Examples:", ...examples.map((example) => `  ${example}`))
-  return lines.join("\n")
+
+  return [
+    `Usage: ${usage}`,
+    definition.description,
+    aliases.length ? `Aliases: ${aliases.join(", ")}` : "",
+    section(
+      "Commands",
+      commands.map((command) => {
+        const aliases = names(command.alias)
+        return [
+          `${command.name}${aliases.length ? ` (${aliases.join(", ")})` : ""}`,
+          command.description ?? "",
+        ]
+      })
+    ),
+    section(
+      "Arguments",
+      positional.map((arg) => [positionLabel(arg), arg.description ?? ""])
+    ),
+    section(
+      "Options",
+      options.map((arg) => {
+        const named = arg as typeof arg & {
+          short?: string | string[]
+          long?: string | string[]
+        }
+        const label = [
+          ...names(named.short).map((name) => `-${name}`),
+          ...names(named.long).map((name) => `--${name}`),
+        ].join(", ")
+        return [
+          `${label}${arg.type === "option" ? " <value>" : ""}`,
+          arg.description ?? "",
+        ]
+      })
+    ),
+    section(
+      "Examples",
+      examples.map((example) => [example, ""])
+    ),
+    commands.length
+      ? `Run '${path.join(" ")} <command> --help' for command details.`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n")
 }

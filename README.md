@@ -15,6 +15,15 @@ Review configuration and installed-source changes when upgrading.
 ## Commands
 
 The command and path improvements below are unreleased; `hulla@0.1.0` does not include them yet.
+Use `hulla --help` to list commands, or append `--help` (or `-h`) to any command
+for its usage, aliases, arguments, and options. Help works outside a project and
+does not load configuration, prompt, or install anything.
+
+```sh
+hulla init --help
+hulla api generate --help
+hulla ui add --help
+```
 
 | Command                         | Purpose                                                                          |
 | ------------------------------- | -------------------------------------------------------------------------------- |

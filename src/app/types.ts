@@ -3,6 +3,7 @@ import type { d } from "@/terminal/format"
 import type { intro } from "@/terminal/prompts/intro"
 import type { log } from "@/terminal/prompts/log"
 import type { outro } from "@/terminal/prompts/outro"
+import type { ParserConfig } from "@hulla/args"
 import type { Err, Ok } from "@hulla/control"
 import type { ConfigSchema } from "schemas/hulla.schema"
 import type { z } from "zod"
@@ -54,7 +55,10 @@ export type CommandOutcome<T = unknown, E = Error> =
   | Ok<CommandSuccess<T>>
   | Err<E>
 
-export type CommandModule<TDefinition = unknown, TData = unknown> = {
+export type CommandModule<
+  TDefinition = NonNullable<ParserConfig["commands"]>[number],
+  TData = unknown,
+> = {
   name: string
   definition: TDefinition
   requiresProjectConfig?: boolean
