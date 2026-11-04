@@ -73,3 +73,11 @@ to other components, so removal is conservative; inspect the result and run the 
 Use a local generated registry for private dogfood and an immutable GitHub release tag for public
 consumption. Never import the registry directly from application code. Installed application source
 must build after the registry and CLI are unavailable.
+
+### Component support files
+
+Registries can publish generated `components` metadata for copied support files. Initialization
+copies bootstrap files; `ui add` copies required support files whose consumer list contains an
+added family. The generator's list includes transitive support dependencies. Files without that
+metadata retain the existing behavior. Existing support files are preserved, and relocated support
+imports use the same alias mapping as installed component files.
