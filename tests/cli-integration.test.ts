@@ -1,4 +1,5 @@
 import { runCli } from "@/app/entrypoint"
+import { readHullaConfig } from "@/platform/config/read-hulla-config"
 import { afterEach, describe, expect, test } from "bun:test"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
@@ -73,6 +74,10 @@ describe("cli integration", () => {
       uninstall: "bun remove",
       upgrade: "bun update",
     })
+    expect(config.cli).not.toHaveProperty("cacheDir")
+    expect((await readHullaConfig(dir))?.cli.cacheDir).toBe(
+      join(dir, ".hulla", ".cache")
+    )
     expect(collector.output()).toContain(
       "outro: @hulla/cli  Project was successfully initialized"
     )

@@ -3,11 +3,12 @@ import { runIntegrationChecks } from "@/checks/run"
 import { ensureProjectConfig } from "@/modules/init"
 import { getProjectRootFromConfigPath } from "@/modules/ui/config"
 import { readHullaConfig } from "@/platform/config/read-hulla-config"
+import { resolveHullaConfig } from "@/platform/config/resolve-hulla-config"
 import { resolveAbsolute } from "@/platform/fs/bun"
 import { validateProjectDirectory } from "@/platform/fs/project-path"
 import { resetIntroState } from "@/terminal/prompts/intro"
 import { statSync } from "node:fs"
-import { dirname, join, resolve } from "node:path"
+import { join, resolve } from "node:path"
 import packageJson from "../../package.json"
 import {
   configureContextRuntime,
@@ -73,11 +74,8 @@ function createPlaceholderConfig(configPath?: unknown): HullaConfig {
     typeof configPath === "string"
       ? resolveAbsolute(cwd, configPath)
       : join(cwd, ".hulla", "hulla.json")
-  const projectRoot = dirname(resolvedPath)
-
-  return {
-    path: resolvedPath,
-    rawConfig: {
+  return resolveHullaConfig(
+    {
       cli: {
         scripts: {
           add: "bun add",
@@ -91,22 +89,8 @@ function createPlaceholderConfig(configPath?: unknown): HullaConfig {
         ui: ".hulla/ui.json",
       },
     },
-    cli: {
-      scripts: {
-        add: "bun add",
-        addDev: "bun add -D",
-        uninstall: "bun remove",
-        upgrade: "bun update",
-      },
-      cache: true,
-      cacheDir: join(projectRoot, ".cache"),
-      logs: true,
-    },
-    configs: {
-      api: "api.config.ts",
-      ui: ".hulla/ui.json",
-    },
-  }
+    resolvedPath
+  )
 }
 
 export async function runCli({

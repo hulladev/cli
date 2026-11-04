@@ -1,7 +1,7 @@
 import { $ } from "bun"
 import { basename, join } from "path"
 import { z, type ZodType } from "zod"
-import { cliSchema, ConfigSchema } from "../schemas/hulla.schema"
+import { ConfigSchema } from "../schemas/hulla.schema"
 import { UIConfigSchema } from "../schemas/ui.schema"
 
 type SchemaTask = {
@@ -109,13 +109,7 @@ async function generateSchema() {
   const cwd = process.cwd()
 
   await generateSchemaAndTypes({
-    // Published schema metadata must not capture the maintainer's checkout path.
-    // Runtime parsing keeps its existing absolute default for the active project.
-    schema: ConfigSchema.extend({
-      cli: cliSchema.extend({
-        cacheDir: z.string().optional().default(".hulla/.cache"),
-      }),
-    }),
+    schema: ConfigSchema,
     schemaPath: join(cwd, "schemas", "hulla.schema.json"),
     typesPath: join(cwd, "schemas", "hulla.types.ts"),
     interfaceName: "HullaConfigSchema",

@@ -1,6 +1,7 @@
 import type { HullaConfig } from "@/app/types"
+import { getProjectRootFromConfigPath } from "@/platform/config/resolve-hulla-config"
 import { readJsonFile, writeJsonFile } from "@/platform/fs/bun"
-import { dirname, isAbsolute, resolve } from "path"
+import { isAbsolute, resolve } from "path"
 import {
   UIConfigSchema,
   defaultUISources,
@@ -25,14 +26,7 @@ export function normalizeProjectRelativePath(value: string): string {
   return noTrailingSlash.length > 0 ? noTrailingSlash : "."
 }
 
-export function getProjectRootFromConfigPath(configPath: string): string {
-  const normalized = normalizePath(configPath)
-  const configDir = dirname(normalized)
-  if (configDir.endsWith("/.hulla")) {
-    return dirname(configDir)
-  }
-  return configDir
-}
+export { getProjectRootFromConfigPath }
 
 export function resolveUIConfigPath(config: HullaConfig): string {
   const root = getProjectRootFromConfigPath(config.path)

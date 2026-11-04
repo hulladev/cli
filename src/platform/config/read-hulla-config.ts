@@ -1,8 +1,6 @@
 import type { HullaConfig, RawHullaConfig } from "@/app/types"
-import { getProjectRootFromConfigPath } from "@/modules/ui/config"
 import { readJsonFile, resolveAbsolute } from "@/platform/fs/bun"
-import { resolve } from "node:path"
-import { ConfigSchema } from "schemas/hulla.schema"
+import { resolveHullaConfig } from "./resolve-hulla-config"
 
 export async function readHullaConfig(
   dir: string,
@@ -13,17 +11,7 @@ export async function readHullaConfig(
 
   if (!data) return null
 
-  const config = ConfigSchema.parse(data)
-  config.cli.cacheDir = resolve(
-    getProjectRootFromConfigPath(resolvedPath),
-    config.cli.cacheDir
-  )
-
-  return {
-    ...config,
-    path: resolvedPath,
-    rawConfig: data,
-  }
+  return resolveHullaConfig(data, resolvedPath)
 }
 
 export const getHullaConfig = readHullaConfig

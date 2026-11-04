@@ -1,13 +1,13 @@
 import { requestCliExit } from "@/app/runtime"
 import type { HullaConfig } from "@/app/types"
-import { getProjectRootFromConfigPath } from "@/modules/ui/config"
 import { writeJsonFile } from "@/platform/fs/bun"
 import { omit } from "@/shared/utils/objects"
 import { d } from "@/terminal/format"
 import { log } from "@/terminal/prompts/log"
 import { resolve } from "node:path"
-import { ConfigSchema } from "schemas/hulla.schema"
+import { ConfigSchema, DEFAULT_CACHE_DIR } from "schemas/hulla.schema"
 import type { HullaConfigSchema } from "schemas/hulla.types"
+import { getProjectRootFromConfigPath } from "./resolve-hulla-config"
 
 /**
  * Remove default values from config to keep JSON clean
@@ -15,7 +15,8 @@ import type { HullaConfigSchema } from "schemas/hulla.types"
  */
 function removeDefaults(
   config: HullaConfigSchema,
-  projectRoot: string
+  filePath: string,
+  originalCacheDir?: string
 ): {
   $schema?: string
   cli: {
@@ -26,7 +27,9 @@ function removeDefaults(
   }
   configs?: HullaConfigSchema["configs"]
 } {
-  const defaultCacheDir = resolve(projectRoot, ".hulla/.cache")
+  const root = getProjectRootFromConfigPath(resolve(filePath))
+  const cacheDir = resolve(root, config.cli.cacheDir)
+  const defaultCacheDir = resolve(root, DEFAULT_CACHE_DIR)
   const cli: {
     scripts: HullaConfigSchema["cli"]["scripts"]
     cache?: boolean
@@ -40,8 +43,12 @@ function removeDefaults(
   if (config.cli.cache !== true) {
     cli.cache = config.cli.cache
   }
-  if (resolve(projectRoot, config.cli.cacheDir) !== defaultCacheDir) {
-    cli.cacheDir = config.cli.cacheDir
+  if (cacheDir !== defaultCacheDir) {
+    cli.cacheDir =
+      originalCacheDir !== undefined &&
+      resolve(root, originalCacheDir) === cacheDir
+        ? originalCacheDir
+        : config.cli.cacheDir
   }
   if (config.cli.logs !== true) {
     cli.logs = config.cli.logs
@@ -85,7 +92,8 @@ export async function writeConfig(
   }
   const dataToWrite = removeDefaults(
     validatedConfig.data,
-    getProjectRootFromConfigPath(filePath)
+    filePath,
+    "rawConfig" in config ? config.rawConfig.cli.cacheDir : undefined
   )
 
   await writeJsonFile(filePath, dataToWrite, true)

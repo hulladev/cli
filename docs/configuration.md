@@ -21,8 +21,15 @@ and paths to subsystem configs:
 }
 ```
 
-Paths are resolved from the project root. `--config` selects a different CLI config. Generated
-JSON schemas in `schemas/` are the authoritative editor/CI contract.
+Paths are resolved from the project root. `--project-config` selects a different project config (UI/setup also accept `--config`). For a
+config inside `.hulla/`, the project root is the directory above `.hulla/`; for other locations,
+it is the config's containing directory.
+
+`cli.cacheDir` defaults to `.hulla/.cache`. The CLI resolves this default and custom relative cache
+paths from that project root when loading the config, regardless of the shell's working directory.
+Explicit absolute cache paths stay absolute. Saving a loaded config omits the default and preserves
+custom relative paths, so copying the config into another checkout uses that checkout's cache.
+Generated JSON schemas in `schemas/` keep the relative default for portable editor/CI validation.
 
 ## Package manager detection
 
