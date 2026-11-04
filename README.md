@@ -81,3 +81,7 @@ controls the copied `lib/style.ts` helper and its runtime dependency. `--yes` us
 the saved choice, or `cn` for a new install. To switch, rerun `hulla ui init` and
 allow the shared helper to be overwritten. Other UI libraries keep their own helpers
 and dependencies.
+
+## Publishing
+
+See [the release workflow](docs/releasing.md) for changesets, version preparation, coordinated releases and npm trusted publishing.
