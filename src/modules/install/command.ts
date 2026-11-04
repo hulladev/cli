@@ -3,12 +3,12 @@ import { command, infiniteSequence } from "@hulla/args"
 
 export const packagesSequence = infiniteSequence({
   name: "packages",
-  description: "Packages to install",
+  description: "Package names (accepted; currently unused)",
 })
 
 export const installCommand = command({
   name: "install",
   alias: ["i", "add"],
-  description: "Install a package",
+  description: "Check that the selected project directory exists",
   arguments: [helpFlag, yesFlag, packagesSequence, configOption],
 })

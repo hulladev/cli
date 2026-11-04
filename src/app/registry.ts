@@ -13,12 +13,16 @@ export const commandModules: CommandModule[] = [
   uiModule,
 ]
 
-export const cli = parser({
+export const cliDefinition = {
   name: "hulla",
+  description:
+    "Initialize projects, install @hulla/ui source, and generate @hulla/api artifacts.",
   settings: {
     startIndex: 2,
     sharedDash: true,
   },
   arguments: [versionFlag, helpFlag, yesFlag, configOption],
-  commands: commandModules.map((module) => module.definition) as unknown as [],
-})
+  commands: commandModules.map((module) => module.definition),
+}
+
+export const cli = parser(cliDefinition)

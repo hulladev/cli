@@ -18,6 +18,7 @@ export const yesFlag = flag({
 
 export const cleanFlag = flag({
   name: "clean",
+  description: "Accepted; currently has no separate effect",
 })
 
 export const configOption = option({

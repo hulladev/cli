@@ -8,7 +8,7 @@ import { command, infiniteSequence } from "@hulla/args"
 
 export const componentsSequence = infiniteSequence({
   name: "components",
-  description: "Add a new UI component",
+  description: "Component names",
 })
 
 export const uiAddCommand = command({

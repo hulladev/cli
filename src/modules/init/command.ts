@@ -4,6 +4,6 @@ import { command } from "@hulla/args"
 export const initCommand = command({
   name: "init",
   alias: ["initialize"],
-  description: "Initialize a new Hulla project",
+  description: "Initialize project configuration for the hulla CLI",
   arguments: [configOption, helpFlag, yesFlag, cleanFlag],
 })

@@ -9,7 +9,8 @@ import {
   createCommandContext,
   terminal,
 } from "./context"
-import { cli, commandModules } from "./registry"
+import { getHelp } from "./help"
+import { cli, cliDefinition, commandModules } from "./registry"
 import { applyCliRuntime, CliExitSignal, getCliCwd } from "./runtime"
 import type {
   CommandModule,
@@ -29,8 +30,9 @@ async function runGlobalArguments(
     return 0
   }
 
-  if (parserResult.arguments.help?.detected) {
-    terminal.outro("Help output is not implemented yet.")
+  const help = getHelp(cliDefinition, parserResult)
+  if (help !== null) {
+    await terminal.log.info(help)
     return 0
   }
 
