@@ -14,6 +14,16 @@ Review configuration and installed-source changes when upgrading.
 
 ## Commands
 
+Use `hulla --help` to list commands, or append `--help` (or `-h`) to any command
+for its usage, aliases, arguments, and options. Help works outside a project and
+does not load configuration, prompt, or install anything.
+
+```sh
+hulla init --help
+hulla api generate --help
+hulla ui add --help
+```
+
 | Command                         | Purpose                                                                          |
 | ------------------------------- | -------------------------------------------------------------------------------- |
 | `hulla init`                    | Detect the project and create `.hulla/hulla.json`                                |
