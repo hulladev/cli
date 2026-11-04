@@ -29,7 +29,7 @@
     "gen:schema": "bun scripts/generate-schema.ts",
     "gen:schema:check": "node scripts/check-generated-schema.mjs",
     "build": "rm -rf dist && bun build ./src/bin/index.ts --target=bun --outfile ./dist/bin.js",
-    "verify": "bun run fmt:check && bun run lint && bun run gen:schema:check && bun run test && bun run build",
+    "verify": "bun run fmt:check && bun run lint && bun run typecheck && bun run gen:schema:check && bun run test && bun run build",
     "release": "node scripts/release.mjs publish",
     "prepack": "bun run build",
     "changeset": "changeset",
@@ -38,7 +38,8 @@
     "release:check": "bun run verify && bun run test:release",
     "release:pack": "node scripts/release.mjs pack",
     "release:publish": "node scripts/release.mjs publish",
-    "release:verify": "node scripts/release.mjs verify"
+    "release:verify": "node scripts/release.mjs verify",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@clack/prompts": "^1.0.0",

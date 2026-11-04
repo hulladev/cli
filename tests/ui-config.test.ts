@@ -44,6 +44,7 @@ describe("ui config paths", () => {
         logs: true,
       },
       configs: {
+        api: "api.config.ts",
         ui: ".hulla/custom-ui.json",
       },
     })

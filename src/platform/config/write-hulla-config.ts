@@ -1,5 +1,5 @@
 import { requestCliExit } from "@/app/runtime"
-import type { HullaConfig } from "@/app/types"
+import type { HullaConfig, RawHullaConfig } from "@/app/types"
 import { writeJsonFile } from "@/platform/fs/bun"
 import { omit } from "@/shared/utils/objects"
 import { d } from "@/terminal/format"
@@ -79,7 +79,7 @@ function removeDefaults(
 }
 
 export async function writeConfig(
-  config: HullaConfigSchema | HullaConfig,
+  config: RawHullaConfig | HullaConfig,
   filePath: string
 ) {
   const dataWithoutPath = omit(config as HullaConfig, ["path"])
