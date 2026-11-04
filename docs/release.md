@@ -1,6 +1,6 @@
 # Compatibility and release process
 
-The current stable line is `0.2.x`. Pin exact CLI and registry versions so source
+The current stable line is `0.3.x`. Pin exact CLI and registry versions so source
 installation and API generation remain reproducible.
 
 Run `bun run verify` for formatting, lint, type checking, generated schema drift,
