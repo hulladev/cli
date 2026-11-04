@@ -1,14 +1,19 @@
 import { ensureProjectConfig } from "@/modules/init"
+import { getProjectRootFromConfigPath } from "@/modules/ui/config"
+import { readHullaConfig } from "@/platform/config/read-hulla-config"
 import { resolveAbsolute } from "@/platform/fs/bun"
+import { validateProjectDirectory } from "@/platform/fs/project-path"
 import { resetIntroState } from "@/terminal/prompts/intro"
-import { ParserError } from "@hulla/args"
-import { dirname, join } from "node:path"
+import { statSync } from "node:fs"
+import { dirname, join, resolve } from "node:path"
 import packageJson from "../../package.json"
 import {
   configureContextRuntime,
   createCommandContext,
   terminal,
 } from "./context"
+import { getCommandHelp } from "./help"
+import { detectedNodes, getStringOption } from "./options"
 import { cli, commandModules } from "./registry"
 import { applyCliRuntime, CliExitSignal, getCliCwd } from "./runtime"
 import type {
@@ -29,8 +34,10 @@ async function runGlobalArguments(
     return 0
   }
 
-  if (parserResult.arguments.help?.detected) {
-    terminal.outro("Help output is not implemented yet.")
+  if (
+    detectedNodes(parserResult).some((node) => node.arguments.help?.detected)
+  ) {
+    terminal.outro(getCommandHelp(parserResult))
     return 0
   }
 
@@ -109,6 +116,8 @@ export async function runCli({
     nonInteractive: argv.includes("--yes") || argv.includes("-y"),
   })
   resetIntroState()
+  const originalCwd = process.cwd()
+  let restoreDirectoryRuntime: (() => void) | undefined
 
   try {
     console.log("")
@@ -117,7 +126,7 @@ export async function runCli({
     configureContextRuntime(parserResult)
     terminal.intro(
       `${terminal.format.package()} ${terminal.format.highlight("[")}v${packageJson.version}${terminal.format.highlight("]")} ${terminal.format.secondary(
-        `[${parserResult.argv.join(" ")}]`
+        `[${argv.slice(2).join(" ")}]`
       )}`
     )
 
@@ -130,15 +139,90 @@ export async function runCli({
     const mode = resolveInvocationMode(detectedCommand)
 
     if (mode !== "command" || !detectedCommand) {
-      terminal.outro("No command selected.")
+      terminal.outro(getCommandHelp(parserResult))
       return { exitCode: 0 }
     }
 
-    const config = detectedCommand.requiresProjectConfig
-      ? await ensureProjectConfig(
-          parserResult.arguments.config?.value as string
-        )
-      : createPlaceholderConfig(parserResult.arguments.config?.value)
+    if (
+      ["ui", "api"].includes(detectedCommand.name) &&
+      detectedNodes(parserResult).length === 2
+    ) {
+      terminal.outro(getCommandHelp(parserResult))
+      return { exitCode: 0 }
+    }
+    if (
+      detectedNodes(parserResult).some((node) => node.arguments.clean?.detected)
+    ) {
+      throw new Error(
+        "--clean is not implemented. Omit it to configure the project without deleting files."
+      )
+    }
+    const cwd = getStringOption(parserResult, "cwd")
+    if (cwd !== undefined) {
+      if (!cwd.trim()) throw new Error("--cwd requires a directory")
+      const target = resolve(getCliCwd(), cwd)
+      if (!statSync(target).isDirectory())
+        throw new Error(`--cwd is not a directory: ${target}`)
+      process.chdir(target)
+      restoreDirectoryRuntime = applyCliRuntime({ cwd: target })
+    }
+    const requestedProjectConfig =
+      getStringOption(parserResult, "project-config") ??
+      (detectedCommand.name === "api"
+        ? undefined
+        : getStringOption(parserResult, "config"))
+    const projectConfig =
+      requestedProjectConfig === undefined
+        ? undefined
+        : resolve(getCliCwd(), requestedProjectConfig)
+    // All runners receive shared options regardless of their position in argv.
+    for (const node of detectedNodes(parserResult).slice(1)) {
+      if (projectConfig !== undefined && detectedCommand.name !== "api") {
+        node.arguments.config = {
+          ...node.arguments.config,
+          value: projectConfig,
+          detected: true,
+        } as typeof node.arguments.config
+      }
+      if (detectedCommand.name === "api") {
+        const apiConfig = getStringOption(parserResult, "config")
+        if (apiConfig !== undefined)
+          node.arguments.config = {
+            ...node.arguments.config,
+            value: apiConfig,
+            detected: true,
+          } as typeof node.arguments.config
+      }
+    }
+    if (detectedCommand.name === "ui") {
+      for (const name of ["source", "framework"]) {
+        const value = getStringOption(parserResult, name)
+        if (value !== undefined && !value.trim())
+          throw new Error(`--${name} requires a value`)
+      }
+      const root = getProjectRootFromConfigPath(
+        createPlaceholderConfig(projectConfig).path
+      )
+      for (const name of ["code-root", "components-root", "copy-root"]) {
+        const value = getStringOption(parserResult, name)
+        if (value !== undefined) {
+          const error = validateProjectDirectory(value, root)
+          if (error) throw new Error(`--${name}: ${error}`)
+        }
+      }
+    }
+    const removingUI =
+      detectedCommand.name === "ui" &&
+      parserResult.commands.ui.commands.remove.detected
+    const config = removingUI
+      ? await readHullaConfig(getCliCwd(), projectConfig)
+      : detectedCommand.requiresProjectConfig
+        ? await ensureProjectConfig(projectConfig)
+        : createPlaceholderConfig(projectConfig)
+    if (!config)
+      throw new Error(
+        "No UI configuration found. There are no configured components to remove."
+      )
     const context = createCommandContext({
       argv,
       parserResult,
@@ -170,20 +254,15 @@ export async function runCli({
       }
     }
 
-    terminal.log.error(
-      `${terminal.format.package("error")} Unfortunately we encountered the following error:`
-    )
-    if (error instanceof ParserError) {
-      terminal.log.error(error.message)
-    } else {
-      terminal.log.error((error as Error).message)
-    }
-    terminal.outro(
-      `If you think this is a bug, please let me know on ${terminal.format.path("https://github.com/hulladev/cli/issues")}`
-    )
+    terminal.log.error(error instanceof Error ? error.message : String(error))
+    terminal.outro("Run hulla --help or hulla <command> --help for usage.")
     return { exitCode: 1 }
   } finally {
     resetIntroState()
+    if (restoreDirectoryRuntime) {
+      process.chdir(originalCwd)
+      restoreDirectoryRuntime()
+    }
     restoreRuntime()
   }
 }

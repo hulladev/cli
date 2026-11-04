@@ -1,10 +1,11 @@
-import { getCliCwd, requestCliExit } from "@/app/runtime"
+import { requestCliExit } from "@/app/runtime"
 import type { HullaConfig } from "@/app/types"
+import { getProjectRootFromConfigPath } from "@/modules/ui/config"
 import { writeJsonFile } from "@/platform/fs/bun"
 import { omit } from "@/shared/utils/objects"
 import { d } from "@/terminal/format"
 import { log } from "@/terminal/prompts/log"
-import { join } from "path"
+import { resolve } from "node:path"
 import { ConfigSchema } from "schemas/hulla.schema"
 import type { HullaConfigSchema } from "schemas/hulla.types"
 
@@ -12,7 +13,10 @@ import type { HullaConfigSchema } from "schemas/hulla.types"
  * Remove default values from config to keep JSON clean
  * Returns object with $schema first to ensure it appears first in JSON
  */
-function removeDefaults(config: HullaConfigSchema): {
+function removeDefaults(
+  config: HullaConfigSchema,
+  projectRoot: string
+): {
   $schema?: string
   cli: {
     scripts: HullaConfigSchema["cli"]["scripts"]
@@ -22,7 +26,7 @@ function removeDefaults(config: HullaConfigSchema): {
   }
   configs?: HullaConfigSchema["configs"]
 } {
-  const defaultCacheDir = join(getCliCwd(), ".hulla/.cache")
+  const defaultCacheDir = resolve(projectRoot, ".hulla/.cache")
   const cli: {
     scripts: HullaConfigSchema["cli"]["scripts"]
     cache?: boolean
@@ -36,7 +40,7 @@ function removeDefaults(config: HullaConfigSchema): {
   if (config.cli.cache !== true) {
     cli.cache = config.cli.cache
   }
-  if (config.cli.cacheDir !== defaultCacheDir) {
+  if (resolve(projectRoot, config.cli.cacheDir) !== defaultCacheDir) {
     cli.cacheDir = config.cli.cacheDir
   }
   if (config.cli.logs !== true) {
@@ -79,7 +83,10 @@ export async function writeConfig(
     )
     requestCliExit(1)
   }
-  const dataToWrite = removeDefaults(validatedConfig.data)
+  const dataToWrite = removeDefaults(
+    validatedConfig.data,
+    getProjectRootFromConfigPath(filePath)
+  )
 
   await writeJsonFile(filePath, dataToWrite, true)
 }

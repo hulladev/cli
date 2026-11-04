@@ -1,3 +1,4 @@
+import { getStringOption } from "@/app/options"
 import { commandErr, commandOkMessage } from "@/app/result"
 import type { CommandContext, CommandModule, ParserResult } from "@/app/types"
 import { d } from "@/terminal/format"
@@ -15,9 +16,43 @@ export async function runUi({
   result: ParserResult["commands"]["ui"]
 }) {
   const uiConfigured = await isUIConfigured(context.config)
-  if (!uiConfigured && !result.commands.init.detected) {
+  if (result.commands.remove.detected && !uiConfigured) {
+    return commandErr(
+      new Error(
+        "No UI configuration found. There are no configured components to remove."
+      )
+    )
+  }
+  const components = result.commands.add.arguments.components?.value
+  if (
+    result.commands.add.detected &&
+    context.parserResult.argv.some((arg) => arg === "--yes" || arg === "-y") &&
+    (!Array.isArray(components) || components.length === 0)
+  ) {
+    return commandErr(
+      new Error(
+        "With --yes, component input is required. Run hulla ui add button dialog --yes."
+      )
+    )
+  }
+  const setupRequested = [
+    "source",
+    "code-root",
+    "components-root",
+    "copy-root",
+  ].some((name) => getStringOption(context.parserResult, name) !== undefined)
+  if (setupRequested && result.commands.remove.detected) {
+    return commandErr(
+      new Error(
+        "Setup options belong to hulla ui init or hulla ui add, not ui remove."
+      )
+    )
+  }
+  if ((!uiConfigured || setupRequested) && !result.commands.init.detected) {
     log.info(
-      `It looks like you don't have ${d.package("normal", " @hulla/ui ")} configured. Let's initialize it for you.`
+      uiConfigured
+        ? "Updating UI configuration from the supplied setup options."
+        : `Configuring ${d.package("normal", " @hulla/ui ")} before adding components.`
     )
     const initResult = await runUiInit({
       context,

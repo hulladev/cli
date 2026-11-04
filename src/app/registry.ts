@@ -3,7 +3,7 @@ import { initModule } from "@/modules/init"
 import { installModule } from "@/modules/install"
 import { uiModule } from "@/modules/ui"
 import { parser } from "@hulla/args"
-import { configOption, helpFlag, versionFlag, yesFlag } from "./arguments"
+import { commonArguments, versionFlag } from "./arguments"
 import type { CommandModule } from "./types"
 
 export const commandModules: CommandModule[] = [
@@ -19,6 +19,6 @@ export const cli = parser({
     startIndex: 2,
     sharedDash: true,
   },
-  arguments: [versionFlag, helpFlag, yesFlag, configOption],
+  arguments: [versionFlag, ...commonArguments],
   commands: commandModules.map((module) => module.definition) as unknown as [],
 })

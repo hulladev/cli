@@ -1,25 +1,15 @@
-import {
-  configOption,
-  frameworkOption,
-  helpFlag,
-  yesFlag,
-} from "@/app/arguments"
+import { commonArguments, uiSetupArguments } from "@/app/arguments"
 import { command, infiniteSequence } from "@hulla/args"
 
 export const componentsSequence = infiniteSequence({
   name: "components",
-  description: "Add a new UI component",
+  description: "Component names (omit to select interactively)",
 })
 
 export const uiAddCommand = command({
   name: "add",
   alias: ["a"],
-  description: "Add a new UI component",
-  arguments: [
-    helpFlag,
-    yesFlag,
-    configOption,
-    frameworkOption,
-    componentsSequence,
-  ],
+  description:
+    "Add or update components; configure UI automatically on first use",
+  arguments: [...commonArguments, ...uiSetupArguments, componentsSequence],
 })

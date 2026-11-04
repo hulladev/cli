@@ -1,3 +1,4 @@
+import { getStringOption } from "@/app/options"
 import type { HullaConfig, ParserResult } from "@/app/types"
 import type { readUIConfig } from "@/modules/ui/config"
 import {
@@ -26,17 +27,7 @@ export function resolveExplicitFramework(input: {
   parserResult: ParserResult
   result: ParserResult["commands"]["ui"]["commands"]["add"]
 }): string | null {
-  const addFramework = input.result.arguments.framework
-  if (addFramework?.detected && typeof addFramework.value === "string") {
-    return addFramework.value.trim()
-  }
-
-  const uiFramework = input.parserResult.commands.ui.arguments.framework
-  if (uiFramework?.detected && typeof uiFramework.value === "string") {
-    return uiFramework.value.trim()
-  }
-
-  return null
+  return getStringOption(input.parserResult, "framework")?.trim() ?? null
 }
 
 export async function resolveRequestedComponents(input: {
