@@ -1,50 +1,45 @@
 import type { PackageManager } from "@/app/types"
 import { d } from "@/decorators"
 import type { PackageJson } from "@/platform/package-json"
-import {
-  getPackageJson,
-  getPackageManagerFromLockfile,
-} from "@/platform/package-json"
+import { detectPackageManager, getPackageJson } from "@/platform/package-json"
 import { confirm } from "@/prompts/confirm"
 import { log } from "@/prompts/log"
 import { cliPrefix } from "@/prompts/templates/cliPrefix"
-import { returnOnMatch } from "@/utils/strings"
+import {
+  isPromptNonInteractive,
+  NonInteractivePromptError,
+} from "@/terminal/prompts/runtime"
 import type { HullaConfigSchema } from "schemas/hulla.types"
 import { getConfigScripts } from "./config-scripts"
 import { loopSelectProperties } from "./editors.init"
 
 export const detectScriptsAndManager = async (
-  packageJson: PackageJson,
   dir: string
 ): Promise<{
   scripts: HullaConfigSchema["cli"]["scripts"]
   packageManager: PackageManager | "other"
 }> => {
-  let scripts: HullaConfigSchema["cli"]["scripts"] | undefined
-  let packageManager: PackageManager | "other" | null = null
-
-  // Attempt to auto-detect package manager and scripts
-  const detectedPackageManager = packageJson.packageManager
-    ? returnOnMatch(packageJson.packageManager, "pnpm", "npm", "yarn", "bun")
-    : await getPackageManagerFromLockfile(dir)
-
-  if (detectedPackageManager) {
-    packageManager = detectedPackageManager
-    scripts = getConfigScripts(detectedPackageManager)
-  }
-
-  if (scripts && packageManager) {
+  const detection = await detectPackageManager(dir)
+  if (detection) {
+    for (const warning of detection.warnings) await log.warn(warning)
     await log.info(
-      `${cliPrefix} Autodetected ${d.success(packageManager)} as package manager`
+      `${cliPrefix} Autodetected ${d.success(detection.manager)} as package manager from ${d.path(detection.sourcePath)}`
     )
     return await loopSelectProperties({
-      scripts,
-      packageManager,
+      scripts: getConfigScripts(detection.manager),
+      packageManager: detection.manager,
       didManuallyEditScripts: false,
     })
   }
 
   // Failed to auto-detect, prompt user for values
+  if (isPromptNonInteractive()) {
+    throw new NonInteractivePromptError({
+      prompt: "select",
+      reason: "the package manager could not be detected.",
+      hint: "Set packageManager in the app or workspace package.json, create a lockfile with your package manager, or run hulla init without --yes to choose install scripts.",
+    })
+  }
   return await loopSelectProperties({
     scripts: undefined,
     packageManager: null,

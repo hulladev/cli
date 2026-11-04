@@ -1,7 +1,14 @@
 import type { HullaConfig } from "@/app/types"
 import { normalizePath } from "@/modules/ui/config"
 import { classifyDependencySpecs } from "@/modules/ui/shared/dependency-versions"
-import type { PackageJson } from "@/platform/package-json"
+import type {
+  PackageJson,
+  PackageManagerDetection,
+} from "@/platform/package-json"
+import {
+  detectPackageManager,
+  getProjectPackageDirectories,
+} from "@/platform/package-json"
 import { d } from "@/terminal/format"
 import { box } from "@/terminal/prompts/box"
 import { confirm } from "@/terminal/prompts/confirm"
@@ -322,27 +329,18 @@ async function runInstallScript(input: {
 export function parseKnownPostAddFormatter(
   command: string
 ): KnownPostAddFormatter | null {
-  const normalized = command.trim().replace(/\s+/g, " ")
+  const normalized = command
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/^(?:npx|bunx|(?:pnpm|yarn) (?:dlx|exec)) /, "")
 
-  if (
-    normalized === "prettier --write {files}" ||
-    normalized === "npx prettier --write {files}" ||
-    normalized === "bunx prettier --write {files}"
-  ) {
+  if (normalized === "prettier --write {files}") {
     return "prettier"
   }
-  if (
-    normalized === "oxfmt {files}" ||
-    normalized === "npx oxfmt {files}" ||
-    normalized === "bunx oxfmt {files}"
-  ) {
+  if (normalized === "oxfmt {files}") {
     return "oxfmt"
   }
-  if (
-    normalized === "biome format --write {files}" ||
-    normalized === "npx biome format --write {files}" ||
-    normalized === "bunx biome format --write {files}"
-  ) {
+  if (normalized === "biome format --write {files}") {
     return "biome"
   }
 
@@ -424,18 +422,20 @@ export async function resolveFormatterExecutionPlan(
   formatter: KnownPostAddFormatter
 ): Promise<FormatterExecutionPlan> {
   const suffix = platform === "win32" ? ".cmd" : ""
-  const localExecutable = join(
-    projectRoot,
-    "node_modules",
-    ".bin",
-    `${formatter}${suffix}`
-  )
-
-  if (await Bun.file(localExecutable).exists()) {
-    return {
-      command: localExecutable,
-      args: [],
-      displayCommand: formatter,
+  const directories = await getProjectPackageDirectories(projectRoot)
+  for (const directory of directories) {
+    const localExecutable = join(
+      directory,
+      "node_modules",
+      ".bin",
+      `${formatter}${suffix}`
+    )
+    if (await Bun.file(localExecutable).exists()) {
+      return {
+        command: localExecutable,
+        args: [],
+        displayCommand: formatter,
+      }
     }
   }
 
@@ -445,6 +445,22 @@ export async function resolveFormatterExecutionPlan(
       packageJson?.dependencies?.[formatter]
   )
 
+  const detection = await detectPackageManager(projectRoot)
+  for (const warning of detection?.warnings ?? []) await log.warn(warning)
+
+  if (detection?.manager === "pnpm" || detection?.manager === "yarn") {
+    const useInstalled =
+      hasFormatterDependency ||
+      (detection.manager === "yarn" &&
+        (await isYarnClassic(detection, directories)))
+    const subcommand = useInstalled ? "exec" : "dlx"
+    return {
+      command: detection.manager,
+      args: [subcommand, formatter],
+      displayCommand: `${detection.manager} ${subcommand} ${formatter}`,
+    }
+  }
+
   if (hasFormatterDependency) {
     return {
       command: formatter,
@@ -453,15 +469,28 @@ export async function resolveFormatterExecutionPlan(
     }
   }
 
-  const runner = await detectPackageExecutor(
-    projectRoot,
-    packageJson?.packageManager
-  )
+  const runner = detection?.manager === "bun" ? "bunx" : "npx"
   return {
     command: runner,
     args: [formatter],
     displayCommand: `${runner} ${formatter}`,
   }
+}
+
+async function isYarnClassic(
+  detection: PackageManagerDetection,
+  directories: string[]
+): Promise<boolean> {
+  const major = detection.version?.match(/^(\d+)(?:[.+-]|$)/)?.[1]
+  if (major) return Number(major) < 2
+
+  for (const directory of directories) {
+    const lockfile = Bun.file(join(directory, "yarn.lock"))
+    if (await lockfile.exists()) {
+      return /^# yarn lockfile v1\s*$/m.test(await lockfile.text())
+    }
+  }
+  return false
 }
 
 export async function buildFormatterPostAddCommand(input: {
@@ -485,24 +514,6 @@ export async function buildFormatterPostAddCommand(input: {
       : [executionPlan.displayCommand]
 
   return [...commandParts, ...formatterArgs, "{files}"].join(" ")
-}
-
-async function detectPackageExecutor(
-  projectRoot: string,
-  packageManager: string | undefined
-): Promise<"bunx" | "npx"> {
-  if (packageManager?.startsWith("bun@")) {
-    return "bunx"
-  }
-
-  if (
-    (await Bun.file(join(projectRoot, "bun.lock")).exists()) ||
-    (await Bun.file(join(projectRoot, "bun.lockb")).exists())
-  ) {
-    return "bunx"
-  }
-
-  return "npx"
 }
 
 function shellEscape(value: string): string {

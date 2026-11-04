@@ -9,6 +9,6 @@ export const packagesSequence = infiniteSequence({
 export const installCommand = command({
   name: "install",
   alias: ["i", "add"],
-  description: "Check that the selected project directory exists",
+  description: "Reserved command; use your package manager or hulla ui add",
   arguments: [...commonArguments, packagesSequence],
 })

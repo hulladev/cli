@@ -91,7 +91,7 @@ export async function initHullaProject(
       return err(new Error("Initialization cancelled or no package.json found"))
     }
 
-    const { scripts } = await detectScriptsAndManager(packageJson, dir)
+    const { scripts } = await detectScriptsAndManager(dir)
     const outputConfigPath = resolveAbsolute(
       getCliCwd(),
       configPath ?? `${dir}/.hulla/hulla.json`
