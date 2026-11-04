@@ -79,7 +79,7 @@ describe("cli integration", () => {
       join(dir, ".hulla", ".cache")
     )
     expect(collector.output()).toContain(
-      "outro: @hulla/cli  Project was successfully initialized"
+      "outro: hulla  Project was successfully initialized"
     )
   })
 
@@ -299,9 +299,7 @@ describe("cli integration", () => {
     expect(
       await readFile(join(dir, "src", "lib", "support.ts"), "utf8")
     ).toContain('from "@/lib/dependency"')
-    expect(collector.output()).toContain(
-      "outro: @hulla/cli  UI command executed"
-    )
+    expect(collector.output()).toContain("outro: hulla  UI command executed")
   })
 
   test("uses scripted framework selection for ambiguous ui add", async () => {

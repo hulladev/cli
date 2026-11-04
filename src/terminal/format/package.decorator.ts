@@ -2,7 +2,7 @@ import { bold, green, inverse, red } from "picocolors"
 
 export const packageDecorator = (
   variant: "normal" | "success" | "error" = "normal",
-  message: string = " @hulla/cli "
+  message: string = " hulla "
 ) => {
   const text =
     variant === "normal"
