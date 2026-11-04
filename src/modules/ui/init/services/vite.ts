@@ -40,6 +40,9 @@ const ASTRO_CONFIG_FILES = [
 export async function createUiViteTask({
   frameworks,
 }: CreateUiViteTaskInput): Promise<string[]> {
+  frameworks = frameworks.filter(
+    (framework) => framework.name.toLowerCase() !== "react-native"
+  )
   if (frameworks.length === 0) {
     return []
   }

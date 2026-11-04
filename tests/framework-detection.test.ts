@@ -43,11 +43,25 @@ describe("framework detection", () => {
       )
     )
 
+    const mobileDir = join(dir, "packages", "mobile")
+    await mkdir(mobileDir, { recursive: true })
+    await writeFile(
+      join(mobileDir, "package.json"),
+      JSON.stringify({ dependencies: { react: "^19", expo: "*" } })
+    )
+
     const result = await detectFrameworkDetailed(dir)
 
     expect(result.detections.some((item) => item.framework === "react")).toBe(
       true
     )
+    expect(
+      result.detections.some((item) => item.framework === "react-native")
+    ).toBe(true)
+    expect(
+      result.detections.find((item) => item.framework === "react")
+        ?.packageJsonPath
+    ).toBe("packages/web/package.json")
     expect(
       Array.from(result.packageJsons.keys()).length
     ).toBeGreaterThanOrEqual(2)

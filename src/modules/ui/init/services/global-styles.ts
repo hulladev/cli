@@ -33,6 +33,9 @@ const SOLID_ENTRY_FILES = [
 export async function createUiGlobalStylesTask({
   frameworks,
 }: CreateUiGlobalStylesTaskInput): Promise<string[]> {
+  frameworks = frameworks.filter(
+    (framework) => framework.name.toLowerCase() !== "react-native"
+  )
   const projectRoot = getCliCwd()
   const destinations = Array.from(
     new Set(

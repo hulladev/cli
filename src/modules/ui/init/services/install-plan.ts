@@ -212,7 +212,8 @@ export async function createUiInstallTask({
     selectedLibs = libs
   }
 
-  const { detections: detectedFrameworks } = await detectFrameworkDetailed()
+  const { detections: detectedFrameworks } =
+    await detectFrameworkDetailed(projectRoot)
   const detectedMap = new Map(
     detectedFrameworks.map((detection) => [
       detection.framework.toLowerCase(),
@@ -280,7 +281,10 @@ export async function createUiInstallTask({
       (install) => install.sourceUrl === lib.url
     )
     const composer =
-      lib.config.name === "@hulla/ui"
+      lib.config.name === "@hulla/ui" &&
+      selectedFrameworkEntries.some(
+        ({ name }) => name.toLowerCase() !== "react-native"
+      )
         ? await promptUIComposer(existingInstall?.composer)
         : undefined
     codeRoot = await requestProjectPath({
@@ -357,7 +361,7 @@ export async function createUiInstallTask({
       for (const [name, version] of Object.entries(
         withComposerDependencies(
           frameworkPackageJson?.dependencies ?? {},
-          composer
+          framework.name.toLowerCase() === "react-native" ? undefined : composer
         )
       )) {
         if (!sharedDependencies.has(name)) {
@@ -915,7 +919,14 @@ async function inferCodeRootFromTsconfig(
       }
 
       const [segment] = normalized.split("/")
-      if (segment) {
+      // Whole-project globs, generated Expo types, and individual env files
+      // do not identify a source directory. Fall back to src instead.
+      if (
+        segment &&
+        !segment.startsWith(".") &&
+        !/[?*]/.test(segment) &&
+        !/\.[cm]?[jt]sx?$/.test(segment)
+      ) {
         return segment
       }
     }
