@@ -1,9 +1,10 @@
+import { checkModules } from "@/checks/commands"
 import { apiModule } from "@/modules/api"
 import { initModule } from "@/modules/init"
 import { installModule } from "@/modules/install"
 import { uiModule } from "@/modules/ui"
 import { parser } from "@hulla/args"
-import { commonArguments, versionFlag } from "./arguments"
+import { checkFlag, commonArguments, versionFlag } from "./arguments"
 import type { CommandModule } from "./types"
 
 export const commandModules: CommandModule[] = [
@@ -11,6 +12,7 @@ export const commandModules: CommandModule[] = [
   installModule,
   initModule,
   uiModule,
+  ...checkModules,
 ]
 
 export const cli = parser({
@@ -19,6 +21,6 @@ export const cli = parser({
     startIndex: 2,
     sharedDash: true,
   },
-  arguments: [versionFlag, ...commonArguments],
+  arguments: [versionFlag, checkFlag, ...commonArguments],
   commands: commandModules.map((module) => module.definition) as unknown as [],
 })

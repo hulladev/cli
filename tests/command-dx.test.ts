@@ -55,11 +55,16 @@ test("help at every command level and bare groups never initialize a project", a
     [],
     ["ui"],
     ["api"],
+    ["style"],
+    ["db"],
+    ["control"],
     ["--help"],
     ["ui", "--help"],
     ["ui", "init", "--help"],
     ["ui", "add", "-h"],
     ["api", "generate", "--help"],
+    ["doctor", "--help"],
+    ["style", "--help"],
   ]) {
     const collector = createTerminalCollector()
     const result = await runCli({

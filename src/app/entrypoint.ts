@@ -1,3 +1,5 @@
+import { integrationChecks } from "@/checks/registry"
+import { runIntegrationChecks } from "@/checks/run"
 import { ensureProjectConfig } from "@/modules/init"
 import { getProjectRootFromConfigPath } from "@/modules/ui/config"
 import { readHullaConfig } from "@/platform/config/read-hulla-config"
@@ -136,6 +138,22 @@ export async function runCli({
     }
 
     const detectedCommand = findDetectedCommand(parserResult)
+    const checking = detectedNodes(parserResult).some(
+      (node) => node.arguments.check?.detected
+    )
+    if (
+      checking &&
+      !integrationChecks.some((check) => check.name === detectedCommand?.name)
+    ) {
+      throw new Error(
+        "Use --check with an integration: hulla ui|style|api|db|control --check, or run hulla doctor."
+      )
+    }
+    if (checking && detectedNodes(parserResult).length > 2) {
+      throw new Error(
+        `Use hulla ${detectedCommand?.name} --check without a subcommand.`
+      )
+    }
     const mode = resolveInvocationMode(detectedCommand)
 
     if (mode !== "command" || !detectedCommand) {
@@ -144,7 +162,8 @@ export async function runCli({
     }
 
     if (
-      ["ui", "api"].includes(detectedCommand.name) &&
+      ["ui", "api", "style", "db", "control"].includes(detectedCommand.name) &&
+      !checking &&
       detectedNodes(parserResult).length === 2
     ) {
       terminal.outro(getCommandHelp(parserResult))
@@ -176,7 +195,9 @@ export async function runCli({
         ? undefined
         : resolve(getCliCwd(), requestedProjectConfig)
     // All runners receive shared options regardless of their position in argv.
-    for (const node of detectedNodes(parserResult).slice(1)) {
+    for (const node of checking || detectedCommand.name === "doctor"
+      ? []
+      : detectedNodes(parserResult).slice(1)) {
       if (projectConfig !== undefined && detectedCommand.name !== "api") {
         node.arguments.config = {
           ...node.arguments.config,
@@ -214,11 +235,13 @@ export async function runCli({
     const removingUI =
       detectedCommand.name === "ui" &&
       parserResult.commands.ui.commands.remove.detected
-    const config = removingUI
-      ? await readHullaConfig(getCliCwd(), projectConfig)
-      : detectedCommand.requiresProjectConfig
-        ? await ensureProjectConfig(projectConfig)
-        : createPlaceholderConfig(projectConfig)
+    const config = checking
+      ? createPlaceholderConfig(projectConfig)
+      : removingUI
+        ? await readHullaConfig(getCliCwd(), projectConfig)
+        : detectedCommand.requiresProjectConfig
+          ? await ensureProjectConfig(projectConfig)
+          : createPlaceholderConfig(projectConfig)
     if (!config)
       throw new Error(
         "No UI configuration found. There are no configured components to remove."
@@ -229,15 +252,17 @@ export async function runCli({
       config,
     })
 
-    const result = await detectedCommand.run({
-      context,
-      result: (
-        parserResult.commands as Record<
-          string,
-          ParserResult["commands"][string]
-        >
-      )[detectedCommand.name] as ParserResult["commands"][string],
-    })
+    const result = checking
+      ? await runIntegrationChecks(context, detectedCommand.name)
+      : await detectedCommand.run({
+          context,
+          result: (
+            parserResult.commands as Record<
+              string,
+              ParserResult["commands"][string]
+            >
+          )[detectedCommand.name] as ParserResult["commands"][string],
+        })
 
     if (result.isErr()) {
       throw result.error

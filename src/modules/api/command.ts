@@ -1,4 +1,4 @@
-import { commonArguments } from "@/app/arguments"
+import { checkFlag, commonArguments } from "@/app/arguments"
 import { command } from "@hulla/args"
 
 export const apiGenerateCommand = command({
@@ -22,6 +22,6 @@ export const apiInitCommand = command({
 export const apiCommand = command({
   name: "api",
   description: "Generate @hulla/api contracts and clients",
-  arguments: [...commonArguments],
+  arguments: [checkFlag, ...commonArguments],
   commands: [apiInitCommand, apiGenerateCommand, apiDevCommand],
 })

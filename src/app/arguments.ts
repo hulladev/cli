@@ -12,6 +12,13 @@ export const versionFlag = flag({
   description: "Show the version number",
 })
 
+export const checkFlag = flag({
+  name: "check",
+  short: [],
+  description:
+    "Check this integration without prompts, network access, or file changes",
+})
+
 export const yesFlag = flag({
   name: "yes",
   short: "y",

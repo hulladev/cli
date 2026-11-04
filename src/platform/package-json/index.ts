@@ -7,6 +7,7 @@ export type PackageJson = {
   scripts?: Record<string, string>
   dependencies?: Record<string, string>
   devDependencies?: Record<string, string>
+  peerDependencies?: Record<string, string>
   packageManager?: string
   workspaces?: string[] | { packages: string[] }
 }

@@ -49,6 +49,13 @@ export async function readUIConfig(config: HullaConfig): Promise<{
   data: UIProjectConfig
 }> {
   const path = resolveUIConfigPath(config)
+  return readUIConfigAtPath(path)
+}
+
+export async function readUIConfigAtPath(path: string): Promise<{
+  path: string
+  data: UIProjectConfig
+}> {
   const raw = await readJsonFile<unknown>(path)
   if (!raw) {
     return {

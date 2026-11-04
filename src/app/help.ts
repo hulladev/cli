@@ -1,4 +1,4 @@
-import { commonArguments, versionFlag } from "./arguments"
+import { checkFlag, commonArguments, versionFlag } from "./arguments"
 import { detectedNodes } from "./options"
 import { commandModules } from "./registry"
 import type { ParserResult } from "./types"
@@ -22,7 +22,7 @@ export function getCommandHelp(result: ParserResult): string {
     name: "hulla",
     description:
       "Configure projects, install UI source, and generate API clients.",
-    arguments: [versionFlag, ...commonArguments],
+    arguments: [versionFlag, checkFlag, ...commonArguments],
     commands: commandModules
       .filter((module) => module.name !== "install")
       .map((module) => module.definition as HelpCommand),
@@ -73,14 +73,23 @@ export function getCommandHelp(result: ParserResult): string {
           "hulla ui add button dialog",
           "hulla ui add button --framework react-native --cwd apps/mobile",
           "hulla ui init --components-root src/components/ui",
+          "hulla ui --check --cwd apps/mobile",
         ]
       : names[1] === "api"
         ? [
             "hulla api init",
             "hulla api generate",
             "hulla api dev --cwd apps/server",
+            "hulla api --check --cwd apps/server",
           ]
-        : ["hulla ui add button dialog", "hulla api init", "hulla ui --help"]
+        : names[1] === "doctor"
+          ? ["hulla doctor", "hulla doctor --cwd apps/mobile"]
+          : ["style", "db", "control"].includes(names[1])
+            ? [
+                `hulla ${names[1]} --check`,
+                `hulla ${names[1]} --check --cwd apps/server`,
+              ]
+            : ["hulla ui add button dialog", "hulla doctor", "hulla ui --check"]
   lines.push("", "Examples:", ...examples.map((example) => `  ${example}`))
   return lines.join("\n")
 }
