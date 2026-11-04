@@ -4,6 +4,7 @@ import type { PackageJson } from "@/platform/package-json"
 
 export type Framework =
   | "react"
+  | "react-native"
   | "vue"
   | "svelte"
   | "solid"
@@ -417,6 +418,10 @@ function detectFrameworksFromPackageJsonDetailed(
     [
       // React ecosystem
       {
+        framework: "react-native",
+        patterns: ["react-native", "expo"],
+      },
+      {
         framework: "react",
         patterns: ["react"],
       },
@@ -515,6 +520,14 @@ function detectFrameworksFromPackageJsonDetailed(
 
   // Check each framework pattern
   for (const { framework, patterns } of frameworkPatterns) {
+    // React is a peer of React Native, not evidence of a second web app.
+    // Keep this scoped to each package so monorepos can still detect web apps.
+    if (
+      framework === "react" &&
+      ("react-native" in allDependencies || "expo" in allDependencies)
+    ) {
+      continue
+    }
     const matchedPattern = patterns.find(
       (pattern) => pattern in allDependencies
     )

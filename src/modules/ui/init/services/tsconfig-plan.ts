@@ -37,6 +37,7 @@ type WorkingTsconfig = {
   beforeText: string
   exists: boolean
   config: Record<string, unknown>
+  originalConfig: Record<string, unknown>
 }
 
 export async function createUiTsconfigTask({
@@ -84,19 +85,11 @@ export async function createUiTsconfigTask({
     selection.frameworkPaths[framework.id] = tsconfigPath
 
     const working = await getWorkingTsconfig(workingByPath, tsconfigPath)
-    const merged = mergeWithFrameworkTemplate(
-      working.config,
-      framework.templateConfig,
-      {
-        allowBaseUrl,
-      }
-    ) as Record<string, unknown>
-
-    const withIncludes = mergeIncludeEntries(
-      merged,
-      buildFrameworkIncludeEntries(framework)
-    )
-    working.config = ensureAliasPath(withIncludes, framework.codeRoot)
+    working.config = configureFrameworkTsconfig(working.config, framework, {
+      allowBaseUrl,
+      tsconfigPath,
+      cwd,
+    })
   } else {
     const rootPath = await requestTsconfigPath({
       message: "Select root tsconfig.json for project references",
@@ -120,17 +113,11 @@ export async function createUiTsconfigTask({
       })
 
       const working = await getWorkingTsconfig(workingByPath, frameworkPath)
-      const merged = mergeWithFrameworkTemplate(
-        working.config,
-        framework.templateConfig,
-        { allowBaseUrl }
-      ) as Record<string, unknown>
-
-      const withIncludes = mergeIncludeEntries(
-        merged,
-        buildFrameworkIncludeEntries(framework)
-      )
-      working.config = ensureAliasPath(withIncludes, framework.codeRoot)
+      working.config = configureFrameworkTsconfig(working.config, framework, {
+        allowBaseUrl,
+        tsconfigPath: frameworkPath,
+        cwd,
+      })
     }
 
     const rootWorking = await getWorkingTsconfig(workingByPath, rootPath)
@@ -171,6 +158,40 @@ export async function createUiTsconfigTask({
   selection.changedPaths = patches.map((patch) => patch.targetPath)
   log.info("tsconfig changes applied successfully.")
   return selection
+}
+
+function configureFrameworkTsconfig(
+  config: Record<string, unknown>,
+  framework: UISelectedFramework & { templateConfig: Record<string, unknown> },
+  options: { allowBaseUrl: boolean; tsconfigPath: string; cwd: string }
+): Record<string, unknown> {
+  if (framework.name.toLowerCase() === "react-native") {
+    // Expo/React Native own their compiler settings, includes and exclusions.
+    // Only supply the alias needed by copied source, preserving existing aliases.
+    const compilerOptions = isRecord(config.compilerOptions)
+      ? config.compilerOptions
+      : {}
+    const paths = isRecord(compilerOptions.paths) ? compilerOptions.paths : {}
+    if ("@/*" in paths) return config
+    const configDir = dirname(toAbsolutePath(options.tsconfigPath, options.cwd))
+    const aliasBase =
+      typeof compilerOptions.baseUrl === "string"
+        ? resolve(configDir, compilerOptions.baseUrl)
+        : configDir
+    const codeRoot =
+      relative(aliasBase, resolve(options.cwd, framework.codeRoot)) || "."
+    return ensureAliasPath(config, codeRoot)
+  }
+
+  const merged = mergeWithFrameworkTemplate(
+    config,
+    framework.templateConfig,
+    options
+  )
+  return ensureAliasPath(
+    mergeIncludeEntries(merged, buildFrameworkIncludeEntries(framework)),
+    framework.codeRoot
+  )
 }
 
 function normalizePath(input: string): string {
@@ -476,6 +497,7 @@ async function getWorkingTsconfig(
     beforeText: loaded.text,
     exists: loaded.exists,
     config: loaded.config,
+    originalConfig: loaded.config,
   }
 
   map.set(targetPath, working)
@@ -487,6 +509,12 @@ function buildPatchPlans(
 ): TsconfigPatchPlan[] {
   const plans: TsconfigPatchPlan[] = []
   for (const [targetPath, working] of map) {
+    if (
+      working.exists &&
+      JSON.stringify(working.originalConfig) === JSON.stringify(working.config)
+    ) {
+      continue
+    }
     const afterText = renderTsconfig(working.config)
     if (
       working.exists &&
@@ -518,6 +546,10 @@ async function filterValidFrameworks(
     UISelectedFramework & { templateConfig: Record<string, unknown> }
   > = []
   for (const framework of frameworks) {
+    if (framework.name.toLowerCase() === "react-native") {
+      valid.push({ ...framework, templateConfig: {} })
+      continue
+    }
     const loaded = await readTsconfigFile(framework.templateTsconfigPath)
     if (!loaded.exists) {
       log.warn(

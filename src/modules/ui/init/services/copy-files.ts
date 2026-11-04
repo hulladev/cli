@@ -358,7 +358,10 @@ function createCopyOperation(input: {
   return {
     valid: true,
     value: {
-      composer: input.context.composer,
+      composer:
+        input.frameworkName.toLowerCase() === "react-native"
+          ? undefined
+          : input.context.composer,
       libraryName: input.context.libraryName,
       frameworkName: input.frameworkName,
       srcRelative: srcValidation.value,
