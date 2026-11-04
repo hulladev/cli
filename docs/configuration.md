@@ -5,7 +5,7 @@ and paths to subsystem configs:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/hulladev/cli/v0.1.0/schemas/hulla.schema.json",
+  "$schema": "https://raw.githubusercontent.com/hulladev/cli/v0.2.0/schemas/hulla.schema.json",
   "cli": {
     "scripts": {
       "add": "bun add",
@@ -80,7 +80,7 @@ URLs. Relative sources resolve from the project root and load the registry's gen
 
 ## Select a workspace or custom config
 
-In the unreleased command update, `--cwd apps/mobile` targets that app from the repository root.
+With `hulla@0.2.0` or newer, `--cwd apps/mobile` targets that app from the repository root.
 Use `--project-config .hulla/custom.json` to select a project config relative to the selected app.
 The `--config` alias still works for project/UI commands; API commands reserve it for their generator.
 The default cache path is stored as `.hulla/.cache` and resolved from the project root when loaded,

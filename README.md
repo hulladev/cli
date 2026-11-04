@@ -6,15 +6,15 @@ registries, and generating typed `@hulla/api` clients.
 Pin exact versions for reproducible tooling. Stable releases use npm's `latest` channel:
 
 ```sh
-bunx hulla@0.1.0 --version
-npx hulla@0.1.0 --version
+bunx hulla@0.2.0 --version
+npx hulla@0.2.0 --version
 ```
 
 Review configuration and installed-source changes when upgrading.
 
 ## Commands
 
-The command and path improvements below are unreleased; `hulla@0.1.0` does not include them yet.
+The command and path improvements below are available in `hulla@0.2.0` and newer.
 Use `hulla --help` to list commands, or append `--help` (or `-h`) to any command
 for its usage, aliases, arguments, and options. Help works outside a project and
 does not load configuration, prompt, or install anything.

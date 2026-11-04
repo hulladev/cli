@@ -1,6 +1,6 @@
 # UI commands
 
-These path and command options are unreleased and are not part of `hulla@0.1.0`.
+These commands and options require `hulla@0.2.0` or newer.
 
 Run `hulla ui add button dialog` from an existing app to configure the CLI and UI source on first
 use, then install both components. You can still run `hulla ui init` separately to review setup.

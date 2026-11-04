@@ -1,6 +1,6 @@
 # CI and non-interactive use
 
-The one-command setup and path flags below require the unreleased command improvements.
+These commands and options require `hulla@0.2.0` or newer.
 
 Pass `--yes` to prohibit prompts. If a required choice is ambiguous, the command fails with a
 corrective message instead of guessing; pass flags such as `--framework` and explicit components.

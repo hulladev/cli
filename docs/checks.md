@@ -1,6 +1,6 @@
 # Check installed integrations
 
-These commands are unreleased and are not included in `hulla@0.1.0`.
+These commands and options require `hulla@0.2.0` or newer.
 
 Run `hulla doctor` from a project or workspace root to check its declared integrations. It detects
 UI, style, API, db, and control integrations, then calls the same checks exposed by each namespace.

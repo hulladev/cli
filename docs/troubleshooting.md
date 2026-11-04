@@ -1,7 +1,7 @@
 # Troubleshooting, upgrade, and rollback
 
-The upcoming CLI release includes `hulla doctor` for local integration diagnostics and
-`hulla ui --check` for the UI check alone. They are not included in `hulla@0.1.0`.
+`hulla@0.2.0` and newer include `hulla doctor` for local integration diagnostics and
+`hulla ui --check` for the UI check alone.
 Use `--cwd apps/mobile` to select a workspace app. See [integration checks](./checks.md)
 for what each check validates and the exit statuses to use in CI.
 
@@ -22,7 +22,7 @@ for what each check validates and the exit statuses to use in CI.
 ## Upgrade
 
 Commit installed/generated source, install an exact newer version, regenerate through the new packed
-CLI, inspect diffs, and run formatting, types, browser tests, and production builds. Upgrade
+CLI, inspect diffs, and run checks appropriate to the affected application code. Upgrade
 `@hulla/ui` first, `hulla` second, then matching API packages.
 
 ## Rollback
