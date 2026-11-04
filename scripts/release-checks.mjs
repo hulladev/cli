@@ -9,6 +9,7 @@ import {
   main,
   orderPackages,
   registryVersion,
+  waitForPublication,
 } from "./release.mjs"
 
 test("dependencies and peers are published before adapters, independent of input order", () => {
@@ -47,6 +48,29 @@ test("only a registry 404 means unpublished; auth failures and outages stop the 
       throw new Error("offline")
     }),
     /offline/
+  )
+})
+
+test("accepted publications can take several minutes to become visible, with a bounded wait", async () => {
+  const pkg = { name: "pkg", version: "1.0.0" }
+  let lookups = 0
+  const published = { ...pkg, dist: { integrity: "sha512-expected" } }
+  const visible = await waitForPublication(
+    pkg,
+    async () =>
+      ++lookups <= 45
+        ? { status: 404 }
+        : { status: 200, ok: true, json: async () => published },
+    async () => {}
+  )
+  assert.deepEqual(visible, published)
+  await assert.rejects(
+    waitForPublication(
+      pkg,
+      async () => ({ status: 404 }),
+      async () => {}
+    ),
+    /not visible after ten minutes.*Rerun this workflow to resume/
   )
 })
 

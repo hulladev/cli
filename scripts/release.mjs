@@ -79,6 +79,21 @@ export async function registryVersion(
   return response.json()
 }
 
+export async function waitForPublication(
+  pkg,
+  request = globalThis.fetch,
+  wait = setTimeout
+) {
+  for (let attempt = 0; attempt < 120; attempt++) {
+    const visible = await registryVersion(pkg.name, pkg.version, request)
+    if (visible) return visible
+    if (attempt < 119) await wait(5000)
+  }
+  assert.fail(
+    `Publication not visible after ten minutes: ${pkg.name}@${pkg.version}. Rerun this workflow to resume.`
+  )
+}
+
 export function assertExistingPackage(expected, actual) {
   assert.equal(actual.name, expected.name)
   assert.equal(actual.version, expected.version)
@@ -350,16 +365,8 @@ async function publish(config) {
       "--tag",
       "latest",
     ])
-    let visible = null
-    for (let attempt = 0; attempt < 30; attempt++) {
-      visible = await registryVersion(pkg.name, pkg.version)
-      if (visible) break
-      await setTimeout(2000)
-    }
-    assert(
-      visible,
-      `Publication not visible yet: ${pkg.name}@${pkg.version}. Rerun this workflow to resume.`
-    )
+    console.log(`Waiting for npm visibility: ${pkg.name}@${pkg.version}`)
+    const visible = await waitForPublication(pkg)
     assertExistingPackage(pkg, visible)
   }
 }
