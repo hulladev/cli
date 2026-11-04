@@ -38,6 +38,7 @@ import {
   isComponentPackageJson,
   listFilesRecursive,
   resolveAliasMappingsForComponent,
+  rewriteMappedImports,
   toRelativeDisplayPath,
 } from "./support-files"
 
@@ -366,49 +367,6 @@ function isRewriteCandidate(path: string): boolean {
     }
   }
   return false
-}
-
-function rewriteMappedImports(
-  content: string,
-  mappings: AliasRewriteMapping[]
-): string {
-  if (mappings.length === 0) {
-    return content
-  }
-
-  const rewriteSpecifier = (specifier: string): string => {
-    for (const mapping of mappings) {
-      if (specifier === mapping.from) {
-        return mapping.to
-      }
-      if (specifier.startsWith(`${mapping.from}/`)) {
-        return `${mapping.to}${specifier.slice(mapping.from.length)}`
-      }
-    }
-    return specifier
-  }
-
-  const rewrittenStatic = content.replace(
-    /\b(import|export)\s+[^\n;]*?\sfrom\s*(["'])([^"']+)\2/g,
-    (full, _keyword, quote, specifier) => {
-      const rewritten = rewriteSpecifier(specifier)
-      return full.replace(
-        `${quote}${specifier}${quote}`,
-        `${quote}${rewritten}${quote}`
-      )
-    }
-  )
-
-  return rewrittenStatic.replace(
-    /\bimport\s*\(\s*(["'])([^"']+)\1\s*\)/g,
-    (full, quote, specifier) => {
-      const rewritten = rewriteSpecifier(specifier)
-      return full.replace(
-        `${quote}${specifier}${quote}`,
-        `${quote}${rewritten}${quote}`
-      )
-    }
-  )
 }
 
 export async function hasMatchingContent(

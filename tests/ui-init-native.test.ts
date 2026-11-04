@@ -24,7 +24,12 @@ test.each(["expo", "react-native"])(
       `export const config = {
       name: "@hulla/ui", version: "1.0.0",
       frameworks: { react: "react", "react-native": "react-native" },
-      copyFiles: { "react-native": [{ src: "lib/style.ts", required: true }] }
+      copyFiles: { "react-native": [
+        { src: "lib/style.ts", required: true },
+        { src: "lib/date.ts", required: true, components: ["calendar"] },
+        { src: "lib/input.ts", required: true, components: ["input"] },
+        { src: "lib/field.ts", required: true, components: ["input"] }
+      ] }
     }`
     )
     await writeFile(
@@ -56,6 +61,25 @@ test.each(["expo", "react-native"])(
     const nativeStyle =
       'import { style } from "@hulla/style"\nimport { native } from "@hulla/style-native"\nexport const { cn, vn } = style(native)\n'
     await writeFile(join(registry, "react-native/lib/style.ts"), nativeStyle)
+    for (const [name, content] of Object.entries({
+      date: 'export const date = "date"\n',
+      input: 'export { field } from "@/lib/field"\n',
+      field: 'export const field = "field"\n',
+    }))
+      await writeFile(join(registry, `react-native/lib/${name}.ts`), content)
+    for (const name of ["button", "input", "calendar"]) {
+      await mkdir(join(registry, "react-native", name), { recursive: true })
+      await writeFile(
+        join(registry, "react-native", name, "package.json"),
+        "{}"
+      )
+      await writeFile(
+        join(registry, "react-native", name, "index.ts"),
+        name === "input"
+          ? 'export { field } from "@/lib/input"\n'
+          : `export const ${name} = true\n`
+      )
+    }
     await writeFile(
       join(dir, "package.json"),
       JSON.stringify({
@@ -149,6 +173,39 @@ test.each(["expo", "react-native"])(
       expect(collector.output()).not.toMatch(
         /cn@|tailwind-merge|tailwindcss|Vite config/
       )
+      if (host === "expo" && pass === 0) {
+        const add = (name: string) =>
+          runCli({
+            argv: ["bun", "hulla", "ui", "add", name, "--yes"],
+            runtime: { cwd: dir, terminal: collector.terminal },
+          })
+        expect((await add("button")).exitCode).toBe(0)
+        for (const name of ["date", "input", "field"])
+          expect(await Bun.file(join(dir, `src/lib/${name}.ts`)).exists()).toBe(
+            false
+          )
+        // Support roots can move independently of component roots.
+        config.installs[0].copyFilesRoot = "src/support"
+        await writeFile(join(dir, ".hulla/ui.json"), JSON.stringify(config))
+        expect((await add("input")).exitCode).toBe(0)
+        expect(
+          await readFile(join(dir, "src/support/lib/input.ts"), "utf8")
+        ).toContain('"@/support/lib/field"')
+        expect(
+          await readFile(join(dir, "src/support/lib/field.ts"), "utf8")
+        ).toContain('"field"')
+        expect(await Bun.file(join(dir, "src/lib/date.ts")).exists()).toBe(
+          false
+        )
+        await writeFile(
+          join(dir, "src/support/lib/field.ts"),
+          'export const field = "custom"\n'
+        )
+        expect((await add("input")).exitCode).toBe(0)
+        expect(
+          await readFile(join(dir, "src/support/lib/field.ts"), "utf8")
+        ).toContain('"custom"')
+      }
     }
   }
 )

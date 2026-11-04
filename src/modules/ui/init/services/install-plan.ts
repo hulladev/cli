@@ -61,6 +61,8 @@ export type UIInstallDraft = {
 }
 
 export type UICopyEntry = {
+  /** Absent for bootstrap files; generated dependency consumers otherwise. */
+  components?: string[]
   src: string
   dest?: string
   required: boolean
@@ -848,16 +850,18 @@ function normalizeCopyEntries(entries?: UICopyEntry[]): UICopyEntry[] {
   if (!entries || entries.length === 0) {
     return []
   }
-  return entries.map((entry) => ({
-    src: normalizeProjectRelativePath(entry.src),
-    dest:
-      typeof entry.dest === "string"
-        ? normalizeProjectRelativePath(entry.dest)
-        : undefined,
-    required: entry.required ?? true,
-    description: entry.description,
-    globalStyle: entry.globalStyle,
-  }))
+  return entries
+    .filter((entry) => entry.components === undefined)
+    .map((entry) => ({
+      src: normalizeProjectRelativePath(entry.src),
+      dest:
+        typeof entry.dest === "string"
+          ? normalizeProjectRelativePath(entry.dest)
+          : undefined,
+      required: entry.required ?? true,
+      description: entry.description,
+      globalStyle: entry.globalStyle,
+    }))
 }
 
 function normalizeTemplatePath(value: string): string {

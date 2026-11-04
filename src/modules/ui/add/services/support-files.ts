@@ -131,8 +131,34 @@ export async function ensureRequiredCopyFiles(input: {
     const frameworkEntries = normalizeCopyEntries(
       libraryConfig.copyFiles[selection.frameworkName]
     )
-    const requiredShared = sharedEntries.filter((entry) => entry.required)
-    const requiredFramework = frameworkEntries.filter((entry) => entry.required)
+    const component = input.resolvedComponents.find(
+      (component) =>
+        component.sourceFrameworkRoot === selection.sourceFrameworkRoot &&
+        component.copyFilesRoot === selection.copyFilesRoot &&
+        component.frameworkName === selection.frameworkName &&
+        component.libraryName === selection.libraryName
+    )!
+    const names = new Set(
+      input.resolvedComponents
+        .filter(
+          (candidate) =>
+            candidate.sourceFrameworkRoot === selection.sourceFrameworkRoot &&
+            candidate.copyFilesRoot === selection.copyFilesRoot &&
+            candidate.frameworkName === selection.frameworkName &&
+            candidate.libraryName === selection.libraryName
+        )
+        .map((candidate) => candidate.componentName)
+    )
+    const needed = (entry: ReturnType<typeof normalizeCopyEntries>[number]) =>
+      entry.required &&
+      (entry.components === undefined ||
+        entry.components.some((name) => names.has(name)))
+    const requiredShared = sharedEntries.filter(needed)
+    const requiredFramework = frameworkEntries.filter(needed)
+    const mappings = await resolveAliasMappingsForComponent({
+      component,
+      cache: new Map(),
+    })
 
     for (const entry of requiredShared) {
       const sourcePath = await resolveCopyEntrySource({
@@ -159,7 +185,9 @@ export async function ensureRequiredCopyFiles(input: {
       }
 
       await mkdir(dirname(destinationPath), { recursive: true })
-      const sourceContent = await Bun.file(sourcePath).arrayBuffer()
+      const sourceContent = /\.[cm]?[jt]sx?$/.test(sourcePath)
+        ? rewriteMappedImports(await Bun.file(sourcePath).text(), mappings)
+        : await Bun.file(sourcePath).arrayBuffer()
       await Bun.write(destinationPath, sourceContent)
       copiedPaths.push(destinationPath)
     }
@@ -189,7 +217,9 @@ export async function ensureRequiredCopyFiles(input: {
       }
 
       await mkdir(dirname(destinationPath), { recursive: true })
-      const sourceContent = await Bun.file(sourcePath).arrayBuffer()
+      const sourceContent = /\.[cm]?[jt]sx?$/.test(sourcePath)
+        ? rewriteMappedImports(await Bun.file(sourcePath).text(), mappings)
+        : await Bun.file(sourcePath).arrayBuffer()
       await Bun.write(destinationPath, sourceContent)
       copiedPaths.push(destinationPath)
     }
@@ -227,6 +257,7 @@ function normalizeCopyEntries(entries?: CopyFileEntry[]): Array<{
   src: string
   dest?: string
   required: boolean
+  components?: string[]
 }> {
   if (!entries || entries.length === 0) {
     return []
@@ -239,6 +270,7 @@ function normalizeCopyEntries(entries?: CopyFileEntry[]): Array<{
         ? normalizeProjectRelativePath(entry.dest)
         : undefined,
     required: entry.required !== false,
+    components: entry.components,
   }))
 }
 
@@ -363,4 +395,47 @@ async function resolveCopyEntrySource(input: {
   }
 
   return null
+}
+
+export function rewriteMappedImports(
+  content: string,
+  mappings: AliasRewriteMapping[]
+): string {
+  if (mappings.length === 0) {
+    return content
+  }
+
+  const rewriteSpecifier = (specifier: string): string => {
+    for (const mapping of mappings) {
+      if (specifier === mapping.from) {
+        return mapping.to
+      }
+      if (specifier.startsWith(`${mapping.from}/`)) {
+        return `${mapping.to}${specifier.slice(mapping.from.length)}`
+      }
+    }
+    return specifier
+  }
+
+  const rewrittenStatic = content.replace(
+    /\b(import|export)\s+[^\n;]*?\sfrom\s*(["'])([^"']+)\2/g,
+    (full, _keyword, quote, specifier) => {
+      const rewritten = rewriteSpecifier(specifier)
+      return full.replace(
+        `${quote}${specifier}${quote}`,
+        `${quote}${rewritten}${quote}`
+      )
+    }
+  )
+
+  return rewrittenStatic.replace(
+    /\bimport\s*\(\s*(["'])([^"']+)\1\s*\)/g,
+    (full, quote, specifier) => {
+      const rewritten = rewriteSpecifier(specifier)
+      return full.replace(
+        `${quote}${specifier}${quote}`,
+        `${quote}${rewritten}${quote}`
+      )
+    }
+  )
 }

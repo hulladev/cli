@@ -32,6 +32,7 @@ export type CachedSource = {
 }
 
 export type CopyFileEntry = {
+  components?: string[]
   src: string
   dest?: string
   required?: boolean
