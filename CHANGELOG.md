@@ -1,5 +1,37 @@
 # hulla
 
+## 0.2.0
+
+### Minor Changes
+
+- d2df5a2: Add read-only integration-owned `--check` commands for UI, style, API, db, and control. Add a thin
+  `doctor` coordinator that detects declared integrations across workspaces and runs the same checks.
+  Report local package/peer compatibility, UI paths and inherited TypeScript aliases, and optional
+  API/db config syntax without prompts, project-code evaluation, network access, or file changes.
+  Return a failing exit status when checks fail, while continuing other integrations and workspaces.
+- d2a2a40: Fix typed nested directory selection, validate project-relative output paths, and add explicit UI
+  source/framework/output flags. Support one-command UI setup and add, workspace targeting with
+  `--cwd`, consistent shared options, and side-effect-free command help. Resolve project config and
+  cache paths against the selected project, keep generated schema defaults portable, and report
+  reserved commands instead of returning a misleading success.
+
+### Patch Changes
+
+- 11c7ff3: Identify CLI output using its published npm package name, `hulla`.
+
+- b40c11f: Show contextual `--help` and `-h` for every command and alias before project
+  configuration or setup. Generate usage, subcommands, arguments, and options from
+  the command registry so help stays aligned with the CLI.
+- 46b9fc6: Use stable `@hulla/args`, `@hulla/control`, and `@hulla/gittar` releases with current validation and cache behavior, and verify against the stable UI generator.
+- f4ab8e5: Keep the generated cache directory default relative and resolve cache paths from the selected project's config location at runtime. Preserve custom relative cache paths when saving configuration so worktrees and other checkouts do not inherit another checkout's absolute cache path.
+- 0b6cab1: Typecheck CLI source and tests during verification using Bun-compatible module resolution; accept schema input when writing project configuration.
+- 2ff2a50: Detect the containing workspace's package manager during project initialization and UI formatter
+  selection, and resolve hoisted formatter binaries. Report detection sources and stale lockfiles;
+  reject ambiguous lockfiles and missing manager evidence in non-interactive initialization instead
+  of silently selecting npm. Keep application install targets and existing custom scripts intact.
+  Use pnpm/Yarn dlx for uninstalled formatters and exec for declared tools; keep Yarn Classic on
+  exec because it does not support dlx. Preserve formatter previews for these command forms.
+
 ## 0.1.0
 
 ### Minor Changes
