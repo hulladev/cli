@@ -12,6 +12,8 @@ export type UISelectedFramework = {
   codeRoot: string
   templatePath: string
   templateTsconfigPath: string
+  savedTsconfigPath?: string
+  savedRootTsconfigPath?: string
   outputPath: string
   copyFileDestinations: string[]
   globalStyleDestinations: string[]
@@ -52,6 +54,7 @@ export type UIAddFileOperation = {
 }
 
 export type UIAddSummary = {
+  changedFilePaths: string[]
   copied: number
   overwritten: number
   skippedExisting: number

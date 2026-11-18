@@ -35,6 +35,39 @@ export const uiPostAddUpdateStepSchema = z
   .optional()
   .default("")
 
+const hookCommand = z.string().trim().min(1)
+export const uiHooksSchema = z
+  .object({
+    pre: z
+      .array(
+        hookCommand.refine((command) => !command.includes("{files}"), {
+          message:
+            "Pre hooks run before file selection; use post hooks for {files}.",
+        })
+      )
+      .optional(),
+    post: z
+      .array(
+        z.union([
+          hookCommand,
+          z
+            .object({
+              command: hookCommand,
+              preview: z.boolean().optional().default(false),
+            })
+            .refine(
+              (hook) => !hook.preview || hook.command.includes("{files}"),
+              {
+                message:
+                  "Preview hooks must contain {files} and operate only on supplied files.",
+              }
+            ),
+        ])
+      )
+      .optional(),
+  })
+  .optional()
+
 export const UIConfigSchema = z
   .object({
     $schema: z.string().optional(),
@@ -42,6 +75,7 @@ export const UIConfigSchema = z
     sources: z.array(uiSourceSchema).optional().default(defaultUISources),
     installs: z.array(uiInstallSchema).optional().default([]),
     postAddUpdateStep: uiPostAddUpdateStepSchema,
+    hooks: uiHooksSchema,
   })
   .default({
     version: 1,

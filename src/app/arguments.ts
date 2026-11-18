@@ -77,7 +77,7 @@ export const uiSetupArguments = [
     ["copy-root", "Support-file output directory (default: <code-root>)"],
     [
       "post-add-command",
-      "Explicit changed-file command using {files}; use none to disable",
+      "Post hook after successful UI operations; optional {files}; none disables",
     ],
   ].map(([name, description]) => option({ name, short: [], description })),
 ]

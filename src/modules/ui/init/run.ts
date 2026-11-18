@@ -1,5 +1,5 @@
 import { getStringOption } from "@/app/options"
-import { commandOkMessage } from "@/app/result"
+import { commandOk } from "@/app/result"
 import type { CommandContext, CommandModule, ParserResult } from "@/app/types"
 import {
   getProjectRootFromConfigPath,
@@ -13,13 +13,14 @@ import { text } from "@/terminal/prompts/text"
 import { isAbsolute, relative } from "path"
 import {
   buildFormatterPostAddCommand,
-  runPostAddUpdateStep,
+  parseKnownPostAddFormatter,
 } from "../add/services/dependencies"
 import {
   buildFrameworkInstalls,
   findMatchesForComponent,
 } from "../add/services/selection"
 import { missingComponentMessage } from "../list/catalog"
+import { postHooks, runUiHooks } from "../shared/hooks"
 import { createUiCopyTask } from "./services/copy-files"
 import { createUiDepsTask } from "./services/dependencies"
 import { createUiGlobalStylesTask } from "./services/global-styles"
@@ -35,6 +36,14 @@ export async function runUiInit({
 }) {
   const config = context.config
   const loadedUIConfig = await readUIConfig(config)
+  const projectRoot = getProjectRootFromConfigPath(config.path)
+  await runUiHooks({
+    config: loadedUIConfig.data,
+    phase: "pre",
+    operation: "init",
+    projectRoot,
+    files: [],
+  })
   const {
     selectedFrameworks,
     installDrafts,
@@ -72,44 +81,39 @@ export async function runUiInit({
           }).length
       )
     if (missing.length)
-      throw new Error(await missingComponentMessage({ missing, frameworks }))
+      throw new Error(
+        await missingComponentMessage({ missing, frameworks, setup: true })
+      )
   }
-  const projectRoot = getProjectRootFromConfigPath(config.path)
   const explicitPostAdd = getStringOption(
     context.parserResult,
     "post-add-command"
   )
-  const postAddUpdateStep =
-    explicitPostAdd === undefined
-      ? await promptPostAddUpdateStep(
-          projectRoot,
-          loadedUIConfig.data.postAddUpdateStep
-        )
-      : explicitPostAdd === "none"
-        ? ""
-        : explicitPostAdd.trim()
+  let post = loadedUIConfig.data.hooks?.post
+  if (explicitPostAdd !== undefined)
+    post = explicitPostAdd === "none" ? [] : [explicitPostAdd.trim()]
+  else if (post === undefined && loadedUIConfig.data.postAddUpdateStep)
+    post = postHooks(loadedUIConfig.data, "init")
+  else if (post === undefined) {
+    const selected = await promptPostAddUpdateStep(projectRoot, "")
+    post = selected
+      ? [
+          {
+            command: selected,
+            preview: parseKnownPostAddFormatter(selected) !== null,
+          },
+        ]
+      : []
+  }
+  const hooks = { ...loadedUIConfig.data.hooks, post }
 
   const tsconfigSelection = await createUiTsconfigTask({ selectedFrameworks })
-  await runPostAddUpdateStep({
-    postAddUpdateStep,
-    projectRoot,
-    changedFilePaths: tsconfigSelection.changedPaths,
-  })
   const buildConfigPaths = await createUiViteTask({
     frameworks: selectedFrameworks,
   })
   const copySummary = await createUiCopyTask({ config, copyContexts })
   const globalStylePaths = await createUiGlobalStylesTask({
     frameworks: selectedFrameworks,
-  })
-  await runPostAddUpdateStep({
-    postAddUpdateStep,
-    projectRoot,
-    changedFilePaths: [
-      ...buildConfigPaths,
-      ...copySummary.changedFilePaths,
-      ...globalStylePaths,
-    ],
   })
   await createUiDepsTask({
     config,
@@ -149,7 +153,10 @@ export async function runUiInit({
   }))
 
   const replacedSourceUrls = new Set(
-    updatedInstalls.map((item) => item.sourceUrl)
+    installDrafts.flatMap((item) => [
+      item.sourceUrl,
+      ...(item.previousSourceUrl ? [item.previousSourceUrl] : []),
+    ])
   )
   const source = getStringOption(context.parserResult, "source")
   const retainedInstalls =
@@ -163,10 +170,28 @@ export async function runUiInit({
     ...loadedUIConfig.data,
     sources: source === undefined ? loadedUIConfig.data.sources : [source],
     installs: [...retainedInstalls, ...updatedInstalls],
-    postAddUpdateStep,
+    postAddUpdateStep: "",
+    hooks,
   })
 
-  return commandOkMessage("UI command executed")
+  const changedFilePaths = [
+    ...new Set([
+      ...tsconfigSelection.changedPaths,
+      ...buildConfigPaths,
+      ...copySummary.changedFilePaths,
+      ...globalStylePaths,
+      loadedUIConfig.path,
+    ]),
+  ]
+  await runUiHooks({
+    config: { ...loadedUIConfig.data, hooks },
+    phase: "post",
+    operation: "init",
+    projectRoot,
+    files: changedFilePaths,
+  })
+
+  return commandOk("UI command executed", { changedFilePaths })
 }
 
 async function promptPostAddUpdateStep(
@@ -186,7 +211,8 @@ async function promptPostAddUpdateStep(
   const selectedType = await select<
     "prettier" | "oxfmt" | "custom-command" | "none"
   >({
-    message: "Choose a post component add/update step",
+    message:
+      "Choose a post-operation command (for example formatting, checks or code generation)",
     initialValue: getInitialPostStepChoice(initial),
     options: [
       {

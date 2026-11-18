@@ -61,29 +61,29 @@ export function getCommandHelp(result: ParserResult): string {
     path[1] === "ui" && path[2] === "list"
       ? [
           "hulla ui list --framework react-native",
-          "hulla ui search text --framework react-native",
+          "hulla ui list text --framework react-native",
           "hulla ui list --source ./my-registry",
         ]
       : path[1] === "ui"
         ? [
+            "hulla ui init",
+            "hulla ui list",
             "hulla ui add button dialog",
-            "hulla ui add button --framework react-native --cwd apps/mobile",
-            "hulla ui init --components-root src/components/ui",
-            "hulla ui --check --cwd apps/mobile",
+            "hulla ui --check --cwd '<app-path>'",
           ]
         : path[1] === "api"
           ? [
               "hulla api init",
               "hulla api generate",
-              "hulla api dev --cwd apps/server",
-              "hulla api --check --cwd apps/server",
+              "hulla api dev --cwd '<app-path>'",
+              "hulla api --check --cwd '<app-path>'",
             ]
           : path[1] === "doctor"
-            ? ["hulla doctor", "hulla doctor --cwd apps/mobile"]
+            ? ["hulla doctor", "hulla doctor --cwd '<app-path>'"]
             : ["style", "db", "control"].includes(path[1])
               ? [
                   `hulla ${path[1]} --check`,
-                  `hulla ${path[1]} --check --cwd apps/server`,
+                  `hulla ${path[1]} --check --cwd '<app-path>'`,
                 ]
               : [
                   "hulla ui add button dialog",

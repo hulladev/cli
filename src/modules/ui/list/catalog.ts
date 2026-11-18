@@ -193,6 +193,7 @@ export async function loadCatalogFrameworks(
 export async function missingComponentMessage(input: {
   missing: string[]
   frameworks: FrameworkInstall[]
+  setup?: boolean
 }): Promise<string> {
   const catalog = await inspectComponentCatalog(input.frameworks)
   const suggestions = input.missing.flatMap((name) => {
@@ -208,7 +209,7 @@ export async function missingComponentMessage(input: {
       .slice(0, 5)
       .map(
         (entry) =>
-          `  ${name}: ${componentInstallCommand(entry)} (${entry.library}; exports: ${entry.exports.join(", ") || "see source files"})`
+          `  ${name}: ${input.setup ? `configure once: ${componentSetupCommand(entry)}\n  then: ` : ""}${componentInstallCommand(entry)} (${entry.library}; exports: ${entry.exports.join(", ") || "see source files"})`
       )
   })
   return [
@@ -219,9 +220,17 @@ export async function missingComponentMessage(input: {
 }
 
 export function componentInstallCommand(entry: ComponentCatalogEntry): string {
-  const quote = (value: string) =>
-    /^[\w./:@-]+$/.test(value) ? value : `'${value.replaceAll("'", `'"'"'`)}'`
-  return `hulla ui add --framework ${quote(entry.framework)} ${quote(entry.family)} --source ${quote(entry.source)}`
+  return `hulla ui add --framework ${quote(entry.framework)} ${quote(entry.family)}`
+}
+
+export function componentSetupCommand(entry: ComponentCatalogEntry): string {
+  return `hulla ui init --framework ${quote(entry.framework)} --source ${quote(entry.source)}`
+}
+
+function quote(value: string): string {
+  return /^[\w./:@-]+$/.test(value)
+    ? value
+    : `'${value.replaceAll("'", `'"'"'`)}'`
 }
 
 function editDistance(left: string, right: string): number {

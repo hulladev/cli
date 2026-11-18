@@ -194,50 +194,8 @@ export async function installComponentDependencies(input: {
   }
 }
 
-export async function runPostAddUpdateStep(input: {
-  postAddUpdateStep: UIProjectConfigSchema["postAddUpdateStep"]
-  projectRoot: string
-  changedFilePaths: string[]
-}): Promise<void> {
-  const configuredCommand = input.postAddUpdateStep.trim()
-  if (!configuredCommand || input.changedFilePaths.length === 0) {
-    return
-  }
-
-  const changedProjectRelativeFiles = input.changedFilePaths.map((path) =>
-    normalizePath(relative(input.projectRoot, path))
-  )
-  const filesLabel =
-    changedProjectRelativeFiles.length === 1
-      ? "1 file"
-      : `${changedProjectRelativeFiles.length} files`
-
-  log.info(`Running post add/update command on ${filesLabel}...`)
-  const knownFormatter = parseKnownPostAddFormatter(configuredCommand)
-  if (knownFormatter) {
-    await runKnownPostAddFormatter({
-      formatter: knownFormatter,
-      projectRoot: input.projectRoot,
-      files: input.changedFilePaths,
-      stdout: "inherit",
-      stderr: "inherit",
-    })
-    return
-  }
-
-  const script = buildShellPostAddUpdateCommand(
-    configuredCommand,
-    changedProjectRelativeFiles
-  )
-  await runShellPostAddUpdateCommand({
-    projectRoot: input.projectRoot,
-    script,
-    stdout: "inherit",
-    stderr: "inherit",
-  })
-}
-
 export async function formatPostAddUpdateDiffPreview(input: {
+  environment?: Record<string, string>
   postAddUpdateStep: UIProjectConfigSchema["postAddUpdateStep"]
   projectRoot: string
   files: Array<{ path: string; content: string }>
@@ -276,6 +234,14 @@ export async function formatPostAddUpdateDiffPreview(input: {
         files: tempFiles.map((file) => file.tempPath),
         stdout: "ignore",
         stderr: "ignore",
+        environment: {
+          ...input.environment,
+          HULLA_UI_FILES: JSON.stringify(
+            tempFiles.map((file) =>
+              normalizePath(relative(input.projectRoot, file.tempPath))
+            )
+          ),
+        },
       })
     } else {
       await runShellPostAddUpdateCommand({
@@ -288,6 +254,14 @@ export async function formatPostAddUpdateDiffPreview(input: {
         ),
         stdout: "ignore",
         stderr: "inherit",
+        environment: {
+          ...input.environment,
+          HULLA_UI_FILES: JSON.stringify(
+            tempFiles.map((file) =>
+              normalizePath(relative(input.projectRoot, file.tempPath))
+            )
+          ),
+        },
       })
     }
 
@@ -369,15 +343,17 @@ function buildShellPostAddUpdateCommand(
 }
 
 async function runShellPostAddUpdateCommand(input: {
+  environment?: Record<string, string>
   projectRoot: string
   script: string
   stdout: "inherit" | "ignore"
   stderr: "inherit" | "ignore"
 }): Promise<void> {
-  const proc = Bun.spawn(["sh", "-lc", input.script], {
+  const proc = Bun.spawn(["sh", "-c", input.script], {
     cwd: input.projectRoot,
     stdout: input.stdout,
     stderr: input.stderr,
+    env: { ...process.env, ...input.environment },
   })
 
   await proc.exited
@@ -389,6 +365,7 @@ async function runShellPostAddUpdateCommand(input: {
 }
 
 async function runKnownPostAddFormatter(input: {
+  environment?: Record<string, string>
   formatter: KnownPostAddFormatter
   projectRoot: string
   files: string[]
@@ -417,6 +394,7 @@ async function runKnownPostAddFormatter(input: {
       cwd: input.projectRoot,
       stdout: input.stdout,
       stderr: input.stderr,
+      env: { ...process.env, ...input.environment },
     }
   )
 

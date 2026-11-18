@@ -22,6 +22,16 @@ export interface UIProjectConfigSchema {
     }[]
   }[]
   postAddUpdateStep: string
+  hooks?: {
+    pre?: string[]
+    post?: (
+      | string
+      | {
+          command: string
+          preview: boolean
+        }
+    )[]
+  }
 }
 
 // To update this file, run bun gen:schema

@@ -16,6 +16,7 @@ import {
   selectMatchingFramework,
 } from "../add/services/selection"
 import { removeComponentStyles } from "../shared/component-styles"
+import { runUiHooks } from "../shared/hooks"
 
 export async function runUiRemove({
   context,
@@ -39,12 +40,20 @@ export async function runUiRemove({
     }
 
     const uiConfig = await readUIConfig(context.config)
+    const projectRoot = getProjectRootFromConfigPath(context.config.path)
+    await runUiHooks({
+      config: uiConfig.data,
+      phase: "pre",
+      operation: "remove",
+      projectRoot,
+      files: [],
+    })
     const frameworks = await buildFrameworkInstalls(
       context.config,
       uiConfig.data.installs
     )
     const explicitFramework = resolveExplicitFramework(context.parserResult)
-    const projectRoot = getProjectRootFromConfigPath(context.config.path)
+    const changedFilePaths: string[] = []
     const removed: string[] = []
     const missing: string[] = []
 
@@ -91,14 +100,23 @@ export async function runUiRemove({
       if (!approved) continue
 
       await rm(destination, { recursive: true, force: false })
-      await removeComponentStyles({
-        projectRoot,
-        frameworks: frameworks.map((framework) => framework.frameworkName),
-        componentRoot: destination,
-      })
+      changedFilePaths.push(
+        ...(await removeComponentStyles({
+          projectRoot,
+          frameworks: frameworks.map((framework) => framework.frameworkName),
+          componentRoot: destination,
+        }))
+      )
       removed.push(componentName)
     }
 
+    await runUiHooks({
+      config: uiConfig.data,
+      phase: "post",
+      operation: "remove",
+      projectRoot,
+      files: changedFilePaths,
+    })
     return commandOk("UI components removed successfully", {
       removed,
       missing,

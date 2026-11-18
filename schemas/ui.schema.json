@@ -102,6 +102,45 @@
     "postAddUpdateStep": {
       "default": "",
       "type": "string"
+    },
+    "hooks": {
+      "type": "object",
+      "properties": {
+        "pre": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "post": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "preview": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": ["command", "preview"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": ["version", "sources", "installs", "postAddUpdateStep"],

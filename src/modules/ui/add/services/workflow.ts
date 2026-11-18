@@ -20,13 +20,10 @@ import { mkdir } from "node:fs/promises"
 import { dirname, join } from "path"
 import { missingComponentMessage } from "../../list/catalog"
 import { activateComponentStyles } from "../../shared/component-styles"
+import { previewUiHooks } from "../../shared/hooks"
 import type { AliasRewriteMapping, CreateUiAddTaskInput } from "../types"
 import { resolveComponentDependencies } from "./component-dependencies"
-import {
-  formatPostAddUpdateDiffPreview,
-  installComponentDependencies,
-  runPostAddUpdateStep,
-} from "./dependencies"
+import { installComponentDependencies } from "./dependencies"
 import {
   buildFrameworkInstalls,
   findMatchesForComponent,
@@ -203,6 +200,7 @@ export async function createUiAddTask({
       unchangedExisting: 0,
       missingComponents,
       promptedFrameworkSelections,
+      changedFilePaths: [],
     }
     const componentPackageJsonSourcePaths = new Set<string>()
 
@@ -256,8 +254,8 @@ export async function createUiAddTask({
               : await sourceFile.text()
           const previewFormatting =
             typeof sourceContent === "string"
-              ? await formatPostAddUpdateDiffPreview({
-                  postAddUpdateStep: uiConfig.data.postAddUpdateStep,
+              ? await previewUiHooks({
+                  config: uiConfig.data,
                   projectRoot,
                   files: [{ path: destinationPath, content: sourceContent }],
                 })
@@ -333,13 +331,8 @@ export async function createUiAddTask({
         projectRoot,
         componentPackageJsonPaths: Array.from(componentPackageJsonSourcePaths),
       })
-
-      await runPostAddUpdateStep({
-        postAddUpdateStep: uiConfig.data.postAddUpdateStep,
-        projectRoot,
-        changedFilePaths: Array.from(changedFilePaths),
-      })
     }
+    summary.changedFilePaths = Array.from(changedFilePaths)
 
     if (summary.copied > 0) {
       log.success(

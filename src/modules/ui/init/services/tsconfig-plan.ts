@@ -80,6 +80,7 @@ export async function createUiTsconfigTask({
       message: `Select tsconfig.json for ${framework.name}`,
       existingTsconfigs,
       defaultNewPath: "./tsconfig.json",
+      savedPath: framework.savedTsconfigPath,
     })
 
     selection.frameworkPaths[framework.id] = tsconfigPath
@@ -91,10 +92,25 @@ export async function createUiTsconfigTask({
       cwd,
     })
   } else {
+    const savedRootPaths = [
+      ...new Set(
+        normalizedFrameworks.flatMap((framework) =>
+          framework.savedRootTsconfigPath
+            ? [framework.savedRootTsconfigPath]
+            : []
+        )
+      ),
+    ]
+    if (savedRootPaths.length > 1) {
+      throw new Error(
+        "Saved UI installs use different root tsconfig paths. Select one rootTsconfigPath in the UI config before reinitializing."
+      )
+    }
     const rootPath = await requestTsconfigPath({
       message: "Select root tsconfig.json for project references",
       existingTsconfigs,
       defaultNewPath: "./tsconfig.json",
+      savedPath: savedRootPaths[0],
     })
     selection.rootPath = rootPath
 
@@ -104,6 +120,7 @@ export async function createUiTsconfigTask({
         message: `Select tsconfig.json path for ${framework.name}`,
         existingTsconfigs,
         defaultNewPath: `./src/${framework.name.toLowerCase()}/tsconfig.json`,
+        savedPath: framework.savedTsconfigPath,
       })
 
       selection.frameworkPaths[framework.id] = frameworkPath
@@ -380,8 +397,19 @@ async function requestTsconfigPath(input: {
   message: string
   existingTsconfigs: string[]
   defaultNewPath: string
+  savedPath?: string
 }): Promise<string> {
   const cwd = getCliCwd()
+  if (input.savedPath) {
+    const savedPath = toAbsolutePath(input.savedPath, cwd)
+    if (!(await Bun.file(savedPath).exists())) {
+      throw new Error(
+        `Saved UI tsconfig not found: ${input.savedPath}. Update its path in the UI config before reinitializing.`
+      )
+    }
+    log.info(`Reusing saved tsconfig: ${toRelativeDisplay(savedPath, cwd)}`)
+    return savedPath
+  }
   const recommendedPath = pickRecommendedTsconfigPath(input.existingTsconfigs)
   const options = [
     ...input.existingTsconfigs.map((path, index) => ({

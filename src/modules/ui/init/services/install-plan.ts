@@ -9,6 +9,7 @@ import {
   type UIProjectConfig,
 } from "@/lib/ui/config"
 import { resolveUISource } from "@/lib/ui/source"
+import { findExistingInstall } from "@/modules/ui/shared/existing-install"
 import { validateProjectDirectory } from "@/platform/fs/project-path"
 import { box } from "@/prompts/box"
 import { confirm } from "@/prompts/confirm"
@@ -51,6 +52,7 @@ export type UIInstallDraftFramework = {
 }
 
 export type UIInstallDraft = {
+  previousSourceUrl?: string
   composer?: UIComposer
   sourceUrl: string
   libraryName: string
@@ -250,6 +252,12 @@ export async function createUiInstallTask({
   let codeRoot = initialCodeRoot
 
   for (const lib of selectedLibs) {
+    const existingInstall = findExistingInstall({
+      installs: uiConfig.installs,
+      source: lib.url,
+      libraryName: lib.config.name,
+      projectRoot,
+    })
     const frameworkKeys = keys(lib.config.frameworks)
     const frameworkEntries = frameworkKeys.map((framework) => ({
       name: framework,
@@ -259,7 +267,13 @@ export async function createUiInstallTask({
 
     const initialValues: number[] = []
     frameworkEntries.forEach(({ name }, index) => {
-      if (detectedMap.has(name.toLowerCase())) {
+      if (
+        existingInstall?.frameworks.length
+          ? existingInstall.frameworks.some(
+              (framework) => framework.name === name
+            )
+          : detectedMap.has(name.toLowerCase())
+      ) {
         initialValues.push(index)
       }
     })
@@ -301,9 +315,6 @@ export async function createUiInstallTask({
       continue
     }
 
-    const existingInstall = uiConfig.installs.find(
-      (install) => install.sourceUrl === lib.url
-    )
     const composer =
       lib.config.name === "@hulla/ui" &&
       selectedFrameworkEntries.some(
@@ -349,6 +360,13 @@ export async function createUiInstallTask({
         }
     const copyFilesRoot = copySelection.copyFilesRoot
 
+    const describe = (before: string | undefined, after: string) =>
+      before === after
+        ? `${after} (retained)`
+        : before
+          ? `${before} → ${after}`
+          : `${after} (new)`
+
     const selectedFrameworkMap = Object.fromEntries(
       selectedFrameworkEntries.map((entry) => [entry.name, entry.frameworkPath])
     )
@@ -381,7 +399,14 @@ export async function createUiInstallTask({
       }
 
       const templatePath = normalizeTemplatePath(framework.templatePath)
-      const outputPath = normalizeProjectRelativePath(componentsRoot)
+      const savedFramework = existingInstall?.frameworks.find(
+        (entry) => entry.name === framework.name
+      )
+      const outputPath = normalizeProjectRelativePath(
+        options.componentsRoot
+          ? componentsRoot
+          : (savedFramework?.outputPath ?? componentsRoot)
+      )
       const frameworkPackageJson = await readFrameworkPackageJson(
         framework.frameworkPath
       )
@@ -436,6 +461,8 @@ export async function createUiInstallTask({
         codeRoot,
         templatePath,
         templateTsconfigPath: join(framework.frameworkPath, "tsconfig.json"),
+        savedTsconfigPath: savedFramework?.tsconfigPath,
+        savedRootTsconfigPath: existingInstall?.rootTsconfigPath,
         outputPath,
         copyFileDestinations: frameworkCopyDestinations,
         globalStyleDestinations,
@@ -450,7 +477,23 @@ export async function createUiInstallTask({
       })
     }
 
+    box(
+      [
+        `Library: ${lib.config.name}`,
+        `Source: ${describe(existingInstall?.sourceUrl, lib.url)}`,
+        `Frameworks: ${selectedFrameworkEntries.map((entry) => entry.name).join(", ")}`,
+        `Code root: ${describe(existingInstall?.codeRoot, codeRoot)}`,
+        `Components: ${describe(existingInstall?.componentsRoot, componentsRoot)}`,
+        `Support: ${describe(existingInstall?.copyFilesRoot, copyFilesRoot)}`,
+        ...draftFrameworks.map(
+          (framework) => `${framework.name} output: ${framework.outputPath}`
+        ),
+      ].join("\n"),
+      "UI install plan"
+    )
+
     installDrafts.push({
+      previousSourceUrl: existingInstall?.sourceUrl,
       ...(composer ? { composer } : {}),
       sourceUrl: lib.url,
       libraryName: lib.config.name,

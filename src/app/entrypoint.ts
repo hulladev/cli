@@ -204,10 +204,10 @@ export async function runCli({
       if (
         postAddCommand !== undefined &&
         postAddCommand !== "none" &&
-        !postAddCommand.includes("{files}")
+        !postAddCommand.trim()
       ) {
         throw new Error(
-          "--post-add-command must contain {files}, or be none to disable the step."
+          "--post-add-command requires a nonempty command, or none to disable post hooks."
         )
       }
       for (const name of ["source", "framework"]) {

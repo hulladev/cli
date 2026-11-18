@@ -82,10 +82,10 @@ export async function removeComponentStyles(input: {
   projectRoot: string
   frameworks: string[]
   componentRoot: string
-}): Promise<void> {
+}): Promise<string[]> {
   const host = selectHostFramework(input.frameworks.map((name) => ({ name })))
   const entry = host && (await findEntryPath(input.projectRoot, host))
-  if (!entry) return
+  if (!entry) return []
   const before = await Bun.file(entry).text()
   // Remove only side-effect CSS imports inside the directory being uninstalled.
   const after = before.replace(
@@ -96,7 +96,11 @@ export async function removeComponentStyles(input: {
       return isWithin(input.componentRoot, destination) ? "" : statement
     }
   )
-  if (after !== before) await Bun.write(entry, after)
+  if (after !== before) {
+    await Bun.write(entry, after)
+    return [entry]
+  }
+  return []
 }
 
 function isWithin(parent: string, child: string): boolean {

@@ -46,7 +46,7 @@
     "@clack/prompts": "^1.0.0",
     "@hulla/args": "^0.0.5",
     "@hulla/control": "^0.1.1",
-    "@hulla/gittar": "^0.0.6",
+    "@hulla/gittar": "^0.0.7",
     "picocolors": "^1.1.1",
     "zod": "^4.2.1"
   },

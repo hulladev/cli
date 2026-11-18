@@ -63,6 +63,9 @@ test("discovers a custom registry without setup, rejects partial requests, and r
     listed.output.indexOf("aaa [example]")
   )
   expect(listed.output).toContain("hulla ui add --framework example prose")
+  expect(listed.output).toContain(
+    "Configure this source/framework once: hulla ui init --framework example --source"
+  )
   expect(await Bun.file(join(root, ".hulla/hulla.json")).exists()).toBe(false)
   expect(
     await Bun.file(join(root, "src/components/prose/text.jsx")).exists()
@@ -109,6 +112,19 @@ test("discovers a custom registry without setup, rejects partial requests, and r
     "bun format.mjs {files}"
   )
   expect(initialized.exitCode).toBe(0)
+  // General post hooks are one-shot. File processing during comparison is explicit.
+  const configPath = join(root, ".hulla/ui.json")
+  const hooksConfig = await Bun.file(configPath).json()
+  expect(hooksConfig.hooks.post).toEqual(["bun format.mjs {files}"])
+  const configuredList = await invoke("list", "Text", "--framework", "example")
+  expect(configuredList.output).toContain(
+    "hulla ui add --framework example prose"
+  )
+  expect(configuredList.output).not.toContain("--source")
+  hooksConfig.hooks.post = [
+    { command: "bun format.mjs {files}", preview: true },
+  ]
+  await Bun.write(configPath, JSON.stringify(hooksConfig))
   expect(await Bun.file(join(root, "tsconfig.json")).exists()).toBe(false)
   expect(
     (await Bun.file(join(root, "package.json")).json()).devDependencies

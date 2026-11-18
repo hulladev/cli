@@ -8,7 +8,7 @@
         "@clack/prompts": "^1.0.0",
         "@hulla/args": "^0.0.5",
         "@hulla/control": "^0.1.1",
-        "@hulla/gittar": "^0.0.6",
+        "@hulla/gittar": "^0.0.7",
         "picocolors": "^1.1.1",
         "zod": "^4.2.1",
       },
@@ -158,7 +158,7 @@
 
     "@hulla/control": ["@hulla/control@0.1.1", "", {}, "sha512-4Nqp+/YXaAAkiBQelzDCz7sZVtE3WmuONvA6f/P1UBpB2ijzpvEFNgeYOIVV8pPFPSqQG4WIrJK7zy39vC/dpQ=="],
 
-    "@hulla/gittar": ["@hulla/gittar@0.0.6", "", {}, "sha512-WC+tyE6peJLJOYQzn8O4Ps872QNGBGzxNOKcSMx91cksXu0Ogo+secUPoL016lfyQjZ/EsuL6lC7DdtO7xozmA=="],
+    "@hulla/gittar": ["@hulla/gittar@0.0.7", "", {}, "sha512-L8wZ4jQHkfzdOvdGbrZD/NuenCqIpDdnCi+NcVTwfvsAf8IDGYHYuN11S1SbBTVog+1ytyiCVtEtm2vLQj2daw=="],
 
     "@hulla/ui": ["@hulla/ui@0.1.1", "", { "dependencies": { "jiti": "^2.6.1", "picocolors": "^1.1.1", "prettier": "^3.6.2", "prettier-plugin-astro": "^0.14.1", "prettier-plugin-svelte": "^3.4.0", "type-fest": "^5.2.0", "typescript": "^5.9.2" }, "bin": { "uigen": "dist/bin/uigen.js" } }, "sha512-8W5RG5wogBE9GO1OnNgOXwOnvhl+3S+GEJ29xQCMclbWZxo2kEB+dgEgoHQg8WphJCBLbOdV0LPlcDNdjNtcGQ=="],
 

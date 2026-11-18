@@ -3,10 +3,10 @@ import {
   formatPostAddUpdateDiffPreview,
   parseKnownPostAddFormatter,
   resolveFormatterExecutionPlan,
-  runPostAddUpdateStep,
 } from "@/modules/ui/add/services/dependencies"
 import { findMatchesForComponent } from "@/modules/ui/add/services/selection"
 import { hasMatchingContent } from "@/modules/ui/add/services/workflow"
+import { runUiHooks } from "@/modules/ui/shared/hooks"
 import { afterEach, describe, expect, test } from "bun:test"
 import { chmod, mkdir, mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
@@ -216,10 +216,15 @@ describe("ui add selection", () => {
     await mkdir(join(dir, "src"), { recursive: true })
     await Bun.write(filePath, "raw\n")
 
-    await runPostAddUpdateStep({
-      postAddUpdateStep: "prettier --write {files}",
+    await runUiHooks({
+      config: {
+        postAddUpdateStep: "",
+        hooks: { post: ["prettier --write {files}"] },
+      },
       projectRoot: dir,
-      changedFilePaths: [filePath],
+      operation: "add",
+      phase: "post",
+      files: [filePath],
     })
 
     expect(await Bun.file(filePath).text()).toBe("formatted\n")

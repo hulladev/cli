@@ -2,8 +2,10 @@ import { getStringOption } from "@/app/options"
 import { commandErr, commandOkMessage } from "@/app/result"
 import type { CommandContext, ParserResult } from "@/app/types"
 import { log } from "@/terminal/prompts/log"
+import { readUIConfig } from "../config"
 import {
   componentInstallCommand,
+  componentSetupCommand,
   filterComponentCatalog,
   inspectComponentCatalog,
   loadCatalogFrameworks,
@@ -38,7 +40,25 @@ export async function runUiList({
     await inspectComponentCatalog(selected),
     query
   )
+  const configured = (await readUIConfig(context.config)).data.installs
+  const shownSetup = new Set<string>()
   for (const entry of entries) {
+    const key = JSON.stringify([entry.source, entry.framework])
+    if (
+      !shownSetup.has(key) &&
+      !configured.some(
+        (install) =>
+          install.sourceUrl === entry.source &&
+          install.frameworks.some(
+            (framework) => framework.name === entry.framework
+          )
+      )
+    ) {
+      log.info(
+        `Configure this source/framework once: ${componentSetupCommand(entry)}`
+      )
+      shownSetup.add(key)
+    }
     log.info(
       `${entry.family} [${entry.framework}] — ${entry.library}\n  source: ${entry.source}\n  exports: ${entry.exports.join(", ") || "(none detected)"}\n  files: ${entry.files.join(", ")}\n  install: ${componentInstallCommand(entry)}`
     )
