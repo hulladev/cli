@@ -13,19 +13,32 @@ bunx hulla doctor --help
 
 Help works outside a project without configuration, prompts, or installation. Append `--help` to any subcommand for its arguments and options.
 
-## Discover component source
+## Configure once, then add components
 
-Run from the app directory, or select an app with `--cwd apps/mobile`:
+Run `hulla ui init` from the app directory to select the registry, framework and destinations.
+From another directory, use `--cwd '<app-path>'` to select that app during setup.
 
 ```sh
-hulla ui list --framework react-native
-hulla ui search text --framework react-native
-hulla ui add --help
+hulla ui init
+hulla ui list
+hulla ui list text
+hulla ui add button
 ```
 
-Listings read the selected registry and include install commands. Use `--source <URL-or-directory>` to inspect another library without configuring the app. Pin a registry revision when the input must be repeatable.
+Setup creates `.hulla/hulla.json` for project commands and `.hulla/ui.json` for UI choices. If the
+project config sets `configs.ui`, follow that path instead. Keep these files in version control;
+regular adds reuse them. Agents should read the saved config before adding components, and use
+setup flags only for intentional configuration changes.
 
-During setup, `--post-add-command '<command> {files}'` records the project's exact changed-file command; `none` disables it. The CLI does not infer a formatter from dependency names. See the UI guide for staged comparisons and workspace development-dependency reuse.
+Listings read families, exports and filenames from the selected registry. With no query, `list`
+returns the full inventory; a query filters it. To inspect another library without saving it, use
+`hulla ui list --source '<registry-url-or-path>'`. Pinning another revision of the same configured
+registry retains saved destinations.
+
+[Configuration locations and the config-to-CLI mapping](./docs/configuration.md#config-values-and-cli-inputs)
+explain which values setup saves, which are config-only and which inputs apply to one command.
+Configure pre/post commands in the UI config; see [UI hooks](./docs/ui-hooks.md).
+Use `hulla ui init --help` or `hulla ui add --help` for individual options.
 
 ## Guides
 
@@ -34,6 +47,6 @@ During setup, `--post-add-command '<command> {files}'` records the project's exa
 - [Read-only integration checks and doctor](./docs/checks.md)
 - [Website documentation](https://hulla.dev/docs/cli)
 
-`api init/generate/dev` target the legacy API generator. For `@hulla/api` 2.x application setup, follow the [API guides](https://github.com/hulladev/api/tree/master/docs); `hulla api --check` checks an installed integration.
+For `@hulla/api` application setup, follow the [API guides](https://github.com/hulladev/api/tree/master/docs); `hulla api --check` checks an installed integration.
 
 Commit project/UI configuration and installed source; exclude `.hulla/.cache`.

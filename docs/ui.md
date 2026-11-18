@@ -2,8 +2,19 @@
 
 Use `hulla ui --help` to inspect commands available in the installed release.
 
-Run `hulla ui add button dialog` from an existing app to configure the CLI and UI source on first
-use, then install both components. You can still run `hulla ui init` separately to review setup.
+Configure the registry, framework and destination paths once, then reuse the saved choices:
+
+```sh
+hulla ui init
+hulla ui list
+hulla ui add button
+```
+
+Setup writes `.hulla/hulla.json` and the UI config selected by its `configs.ui` value (default:
+`.hulla/ui.json`). Read these files before changing setup options. See
+[configuration locations and the config-to-CLI mapping](./configuration.md#config-values-and-cli-inputs).
+An unconfigured first add can also run setup, but a separate init makes the configuration reviewable
+before copying components. Routine adds need family names and only ambiguous framework selections.
 
 ## `hulla ui list [query…]`
 
@@ -12,14 +23,14 @@ Inspect the selected registry before deciding what to install. `search` and `ls`
 
 ```sh
 hulla ui list --framework react-native
-hulla ui search text --framework react-native
+hulla ui list text --framework react-native
 hulla ui list --source ./my-registry --framework react
 ```
 
 Discovery uses the configured library installs, or fetches configured/default sources through
 `@hulla/gittar` when no installs exist. An explicit `--source` inspects that source without saving it.
 It reads the registry's `ui.config.ts` and component files, reports source exports and filenames,
-and prints an install command targeting that source. It does not execute component modules, initialize
+and prints install commands. An unconfigured source/framework also gets a setup command to run once. It does not execute component modules, initialize
 the application, install dependencies, or copy component files. Remote discovery may download/cache
 the registry. Pin a source revision when the result must be repeatable.
 
@@ -54,37 +65,51 @@ remain an explicit application concern.
 ### Choose paths without the picker
 
 ```sh
-hulla ui init --cwd apps/web --source ./registry --framework react \
+hulla ui init --cwd '<app-path>' --source ./registry --framework react \
   --code-root src --components-root src/components/ui --copy-root src --yes
 ```
 
 `--cwd` is resolved from the invoking directory. All other relative paths resolve from that app;
-`--source ./registry` above means `apps/web/registry`. The three output roots must be project-relative
+`--source ./registry` above means `<app-path>/registry`. The three output roots must be project-relative
 directories, and the component root must be inside the code root. Missing intermediate directories
 are created. Interactive input uses the same validation and does not require a suggestion match.
 
 Without path flags, setup reuses saved paths or detects the code root and defaults components to
 `<code-root>/components` and support files to `<code-root>`. An explicit framework skips framework
-selection, including on first `ui add`. The choices are persisted for later adds. A source flag
+selection, including on first `ui add`. The choices are persisted for later adds. Configure source/framework/paths once, then prefer short
+commands such as `hulla ui add button --yes`. Changing only a remote revision reuses the saved
+install for the same repository, registry subdirectory and library name. Its destinations, composer
+and TypeScript config paths remain authoritative; different repositories/subdirectories stay separate.
+Setup prints the resolved source and destination plan. Explicit root flags intentionally change roots.
+A missing saved TypeScript config fails with guidance instead of selecting another detected config. A source flag
 replaces the saved source list; use the config file for multiple registries.
 
-### Supply the project's changed-file command
+### Run project commands around UI changes
 
-Choose the command explicitly instead of having the CLI infer a formatter from package names.
-For example, if the app defines a `format:files` script that accepts filenames:
+Save general-purpose `hooks.pre` and `hooks.post` arrays in `.hulla/ui.json`. They run before and
+after successful `init`, `add`, and `remove` operations from the app root. Examples include checks,
+code generation and formatting; choose commands that fit the project. Ordinary post hooks run once
+after success, including a successful no-change operation. File commands are skipped with no files.
 
-```sh
-hulla ui init --post-add-command 'bun run format:files {files}' --yes
+```json
+{
+  "hooks": {
+    "pre": ["bun run ui:prepare"],
+    "post": [
+      { "command": "bun run format:files {files}", "preview": true },
+      "bun run typecheck"
+    ]
+  }
+}
 ```
 
-The command is saved as `postAddUpdateStep` and runs from the app root. `{files}` expands to
-shell-quoted changed-file paths. Use `--post-add-command none` to disable the step. Without the flag,
-interactive setup offers the existing formatter/custom choices and `--yes` retains the saved step
-(or leaves it empty). New tool names and project scripts work without a CLI tool-name table.
+`{files}` supplies shell-quoted changed UI/configuration paths to post commands. `preview: true`
+explicitly opts a file-processing command into running on temporary incoming copies before diffing.
+Ordinary commands never run during previews. Pre hooks run before file selection and cannot use
+`{files}`. A failed hook stops the sequence; post failure does not undo the completed file changes.
 
-The step must operate on the supplied files and tolerate temporary source copies: the CLI also runs
-it on staged incoming files before comparing an existing component. That makes formatting-only
-differences unchanged. A failed preview stops the add instead of silently showing an unformatted diff.
+`--post-add-command '<command>'` saves one ordinary post hook; `{files}` is optional. Use `none` to
+disable post hooks. See [hook timing and environment](./ui-hooks.md) for the full interface.
 
 ### Reuse workspace development dependencies
 
@@ -107,7 +132,7 @@ hulla ui add --yes --framework astro button dialog tabs
 ```
 
 Passing a source or output-root flag to `add` first reruns setup. Existing files in an old output
-root stay there; this is configuration, not a migration.
+root stay there; move them explicitly if needed.
 
 Resolves component manifests, dependencies, aliases, copy/support files, and target paths. Existing
 files are updated with visible diffs. Repeating the same command against the same immutable
