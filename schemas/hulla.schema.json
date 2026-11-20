@@ -27,6 +27,18 @@
           "required": ["add", "addDev", "uninstall", "upgrade"],
           "additionalProperties": false
         },
+        "install": {
+          "type": "object",
+          "properties": {
+            "scripts": {
+              "default": "prompt",
+              "type": "string",
+              "enum": ["prompt", "always", "never"]
+            }
+          },
+          "required": ["scripts"],
+          "additionalProperties": false
+        },
         "cache": {
           "default": true,
           "type": "boolean"

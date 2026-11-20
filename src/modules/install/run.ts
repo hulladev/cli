@@ -1,7 +1,7 @@
 import { commandErr, commandOkMessage } from "@/app/result"
 import { getCliCwd } from "@/app/runtime"
 import type { CommandModule } from "@/app/types"
-import { databaseCliPackage } from "@/modules/db/proxy"
+import { databaseBinary, databaseCliPackage } from "@/modules/db/proxy"
 import { getConfigScripts } from "@/modules/init/services/config-scripts"
 import { readHullaConfig } from "@/platform/config/read-hulla-config"
 import {
@@ -18,8 +18,15 @@ const databaseScripts = {
   "db:dev": "hulla-db dev",
 }
 
-async function installPackage(command: string, spec: string, cwd: string) {
-  const proc = Bun.spawn([...command.trim().split(/\s+/), spec], {
+const packageScripts: Record<string, Record<string, string>> = {
+  "@hulla/db": databaseScripts,
+  [databaseCliPackage]: databaseScripts,
+  "@hulla/api-openapi": { "api:openapi": "hulla-openapi export" },
+  "@hulla/ui": { "ui:generate": "uigen", "ui:check": "uigen --check" },
+}
+
+async function installPackages(command: string, specs: string[], cwd: string) {
+  const proc = Bun.spawn([...command.trim().split(/\s+/), ...specs], {
     cwd,
     stdin: "inherit",
     stdout: "inherit",
@@ -27,19 +34,36 @@ async function installPackage(command: string, spec: string, cwd: string) {
   })
   const exitCode = await proc.exited
   if (exitCode !== 0) {
-    throw new Error(`Failed to install ${spec} (exit code: ${exitCode}).`)
+    throw new Error(
+      `Failed to install ${specs.join(", ")} (exit code: ${exitCode}).`
+    )
   }
 }
 
 export const runInstall: CommandModule["run"] = async ({ context, result }) => {
   const packages = result.arguments.packages?.value
-  const spec = Array.isArray(packages) && packages.length === 1 && packages[0]
-  if (typeof spec !== "string" || !/^@hulla\/db(?:@\S+)?$/.test(spec)) {
+  if (!Array.isArray(packages) || !packages.length) {
     return commandErr(
       new Error(
-        "hulla install supports one @hulla/db package spec. Use your package manager for other dependencies."
+        "Pass at least one package, for example hulla install @hulla/db."
       )
     )
+  }
+  const targets = packages.map((spec: unknown) => {
+    const match =
+      typeof spec === "string" &&
+      /^(hulla|@hulla\/[a-z0-9][a-z0-9._-]*)(?:@\S+)?$/.exec(spec)
+    if (!match) {
+      throw new Error(
+        `hulla install accepts @hulla/* packages and hulla: ${spec}`
+      )
+    }
+    return { name: match[1], spec: match[0] }
+  })
+  const enableScripts = result.arguments.scripts?.detected
+  const disableScripts = result.arguments["no-scripts"]?.detected
+  if (enableScripts && disableScripts) {
+    throw new Error("Choose either --scripts or --no-scripts.")
   }
 
   const cwd = getCliCwd()
@@ -53,37 +77,63 @@ export const runInstall: CommandModule["run"] = async ({ context, result }) => {
   }
   const install =
     config?.cli.scripts ?? (detection && getConfigScripts(detection.manager))
-  if (!install?.add.trim() || !install.addDev.trim()) {
+  const database = targets.find(({ name }) => name === "@hulla/db")
+  const explicitDatabaseCli = targets.find(
+    ({ name }) => name === databaseCliPackage
+  )
+  const devCommand = install?.addDev ?? ""
+  const installCommand = result.arguments.dev?.detected
+    ? devCommand
+    : install?.add
+  if (!installCommand?.trim() || (database && !devCommand.trim())) {
     throw new Error(
       "Set packageManager in package.json, create a package manager lockfile, or configure cli.scripts.add and cli.scripts.addDev."
     )
   }
 
-  const missing = Object.entries(databaseScripts).filter(
+  const recipes = Object.assign(
+    {},
+    ...targets.map(({ name }) => packageScripts[name])
+  ) as Record<string, string>
+  const missing = Object.entries(recipes).filter(
     ([name]) => !Object.hasOwn(manifest.scripts ?? {}, name)
   )
+  const scriptMode = config?.cli.install?.scripts ?? "prompt"
   const addScripts =
     missing.length > 0 &&
-    (result.arguments["db-scripts"]?.detected ||
-      (!isPromptNonInteractive() &&
+    !disableScripts &&
+    (enableScripts ||
+      scriptMode === "always" ||
+      (scriptMode === "prompt" &&
+        !isPromptNonInteractive() &&
         process.stdin.isTTY &&
         process.stdout.isTTY &&
         (await confirm({
           message: `Add ${missing.map(([name]) => name).join(" and ")} to package.json?`,
-          initialValue: false,
+          initialValue: true,
         }))))
 
-  await installPackage(install.add, spec, cwd)
-  const installed = await findInstalledPackage(cwd, "@hulla/db")
-  if (!installed) {
-    throw new Error("Cannot resolve the installed @hulla/db version.")
+  const baseSpecs = targets
+    .filter(({ name }) => !database || name !== databaseCliPackage)
+    .map(({ spec }) => spec)
+  await installPackages(installCommand, baseSpecs, cwd)
+  let message = `Installed ${baseSpecs.join(", ")}`
+  if (database) {
+    const installed = await findInstalledPackage(cwd, database.name)
+    if (!installed) {
+      throw new Error("Cannot resolve the installed @hulla/db version.")
+    }
+    // Older SDK releases already contain the database command.
+    if (explicitDatabaseCli || !databaseBinary(installed.manifest)) {
+      const version = database.spec.startsWith("@hulla/db@workspace:")
+        ? "workspace:*"
+        : installed.manifest.version
+      const cliSpec =
+        explicitDatabaseCli?.spec ?? `${databaseCliPackage}@${version}`
+      await installPackages(devCommand, [cliSpec], cwd)
+      message += ` and added ${cliSpec} as a dev dependency`
+    }
   }
-  const cliVersion = spec.startsWith("@hulla/db@workspace:")
-    ? "workspace:*"
-    : installed.manifest.version
-  const cliSpec = `${databaseCliPackage}@${cliVersion}`
-  await installPackage(install.addDev, cliSpec, cwd)
-  const message = `Installed ${spec} and added ${cliSpec} as a dev dependency`
 
   if (addScripts) {
     const installedManifest = await getPackageJson(cwd, "package.json")

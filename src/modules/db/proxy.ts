@@ -1,7 +1,11 @@
-import { findInstalledPackage } from "@/platform/package-json"
+import { findInstalledPackage, type PackageJson } from "@/platform/package-json"
 import { resolve } from "node:path"
 
 export const databaseCliPackage = "@hulla/db-cli"
+
+export function databaseBinary({ bin }: Pick<PackageJson, "bin">) {
+  return typeof bin === "string" ? bin : bin?.["hulla-db"]
+}
 
 /** Extract the wrapper's cwd option and leave command parsing to hulla-db. */
 export function getDatabaseInvocation(args: string[]) {
@@ -37,16 +41,19 @@ export function getDatabaseInvocation(args: string[]) {
 }
 
 export async function runDatabaseCLI(cwd: string, argv: string[]) {
-  const installed = await findInstalledPackage(cwd, databaseCliPackage)
+  const installed =
+    (await findInstalledPackage(cwd, databaseCliPackage)) ??
+    (await findInstalledPackage(cwd, "@hulla/db"))
   if (!installed) {
     throw new Error(
       `No ${databaseCliPackage} installation was found from ${cwd}. Run hulla install @hulla/db in that project to add the database tools.`
     )
   }
-  const { bin } = installed.manifest
-  const executable = typeof bin === "string" ? bin : bin?.["hulla-db"]
+  const executable = databaseBinary(installed.manifest)
   if (!executable) {
-    throw new Error(`${databaseCliPackage} does not provide a hulla-db binary.`)
+    throw new Error(
+      `${installed.manifest.name} does not provide a hulla-db binary. Install ${databaseCliPackage} in this project.`
+    )
   }
 
   const child = Bun.spawn(

@@ -17,25 +17,11 @@ function removeDefaults(
   config: HullaConfigSchema,
   filePath: string,
   originalCacheDir?: string
-): {
-  $schema?: string
-  cli: {
-    scripts: HullaConfigSchema["cli"]["scripts"]
-    cache?: boolean
-    cacheDir?: string
-    logs?: boolean
-  }
-  configs?: HullaConfigSchema["configs"]
-} {
+): RawHullaConfig {
   const root = getProjectRootFromConfigPath(resolve(filePath))
   const cacheDir = resolve(root, config.cli.cacheDir)
   const defaultCacheDir = resolve(root, DEFAULT_CACHE_DIR)
-  const cli: {
-    scripts: HullaConfigSchema["cli"]["scripts"]
-    cache?: boolean
-    cacheDir?: string
-    logs?: boolean
-  } = {
+  const cli: RawHullaConfig["cli"] = {
     scripts: config.cli.scripts,
   }
 
@@ -53,18 +39,12 @@ function removeDefaults(
   if (config.cli.logs !== true) {
     cli.logs = config.cli.logs
   }
+  if (config.cli.install && config.cli.install.scripts !== "prompt") {
+    cli.install = config.cli.install
+  }
 
   // Build result with $schema first to ensure it appears first in JSON
-  const result: {
-    $schema?: string
-    cli: {
-      scripts: HullaConfigSchema["cli"]["scripts"]
-      cache?: boolean
-      cacheDir?: string
-      logs?: boolean
-    }
-    configs?: HullaConfigSchema["configs"]
-  } = {
+  const result: RawHullaConfig = {
     cli,
   }
 

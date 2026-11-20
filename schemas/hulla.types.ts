@@ -11,6 +11,9 @@ export interface HullaConfigSchema {
       uninstall: string
       upgrade: string
     }
+    install?: {
+      scripts: "prompt" | "always" | "never"
+    }
     cache: boolean
     cacheDir: string
     logs: boolean

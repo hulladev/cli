@@ -21,11 +21,80 @@ describe("cli smoke", () => {
     expect(result.output).toContain("Unhandled argument: wat")
   })
 
-  test("rejects unrelated packages through the database installer", async () => {
-    const result = await runCliProcess(["install", "@hulla/control"])
+  test("rejects packages outside the ecosystem", async () => {
+    const result = await runCliProcess(["install", "zod"])
 
     expect(result.exitCode).toBe(1)
-    expect(result.output).toContain("hulla install supports one @hulla/db")
+    expect(result.output).toContain("hulla install accepts @hulla/* packages")
+  })
+
+  test("installs multiple development packages and applies the saved script preference", async () => {
+    const dir = await createTempDir("hulla-install-setup")
+    try {
+      const app = join(dir, "packages/app")
+      const manifest = join(app, "package.json")
+      await Bun.write(
+        join(dir, "package.json"),
+        JSON.stringify({
+          name: "workspace",
+          private: true,
+          workspaces: ["packages/*"],
+        })
+      )
+      await Bun.write(
+        manifest,
+        JSON.stringify({
+          name: "app",
+          scripts: { "ui:check": "existing-check" },
+        })
+      )
+      for (const name of ["ui", "control"]) {
+        await Bun.write(
+          join(dir, "packages", name, "package.json"),
+          JSON.stringify({ name: `@hulla/${name}`, version: "1.0.0" })
+        )
+      }
+      await Bun.write(
+        join(app, ".hulla/hulla.json"),
+        JSON.stringify({
+          cli: {
+            scripts: {
+              add: "bun add",
+              addDev: "bun add -D",
+              upgrade: "bun update",
+              uninstall: "bun remove",
+            },
+            install: { scripts: "always" },
+          },
+        })
+      )
+      const args = [
+        "install",
+        "@hulla/ui@workspace:*",
+        "@hulla/control@workspace:*",
+        "--dev",
+        "--cwd",
+        app,
+        "--yes",
+      ]
+      const base = await runCliProcess([...args, "--no-scripts"])
+      expect(base.exitCode).toBe(0)
+      const installed = await Bun.file(manifest).json()
+      expect(installed.devDependencies).toEqual({
+        "@hulla/control": "workspace:*",
+        "@hulla/ui": "workspace:*",
+      })
+      expect(installed.scripts).toEqual({ "ui:check": "existing-check" })
+
+      const withScripts = await runCliProcess(args)
+      expect(withScripts.exitCode).toBe(0)
+      expect((await Bun.file(manifest).json()).scripts).toEqual({
+        "ui:check": "existing-check",
+        "ui:generate": "uigen",
+      })
+    } finally {
+      await removeTempDir(dir)
+    }
   })
 
   test("installs database tooling as a workspace dev dependency and adds scripts on opt-in", async () => {
@@ -121,6 +190,55 @@ process.exit(23)`
         "db entry.ts",
         "--check",
       ])
+    } finally {
+      await removeTempDir(dir)
+    }
+  })
+
+  test("installs and invokes an SDK that already supplies hulla-db", async () => {
+    const dir = await createTempDir("hulla-db-bundled-cli")
+    try {
+      const app = join(dir, "packages/app")
+      const db = join(dir, "packages/db")
+      await Bun.write(
+        join(dir, "package.json"),
+        JSON.stringify({
+          name: "workspace",
+          private: true,
+          packageManager: "bun",
+          workspaces: ["packages/*"],
+        })
+      )
+      await Bun.write(join(app, "package.json"), '{"name":"app"}')
+      await Bun.write(
+        join(db, "package.json"),
+        JSON.stringify({
+          name: "@hulla/db",
+          version: "0.3.3",
+          bin: { "hulla-db": "./cli.mjs" },
+        })
+      )
+      await Bun.write(
+        join(db, "cli.mjs"),
+        "console.log(`Bundled database command ${process.argv[2]}`)"
+      )
+
+      const installed = await runCliProcess([
+        "install",
+        "@hulla/db@workspace:*",
+        "--scripts",
+        "--cwd",
+        app,
+        "--yes",
+      ])
+      expect(installed.exitCode).toBe(0)
+      const manifest = await Bun.file(join(app, "package.json")).json()
+      expect(manifest.devDependencies?.["@hulla/db-cli"]).toBeUndefined()
+      expect(manifest.scripts?.["db:generate"]).toBe("hulla-db generate")
+
+      const delegated = await runCliProcess(["db", "generate", "--cwd", app])
+      expect(delegated.exitCode).toBe(0)
+      expect(delegated.output).toBe("Bundled database command generate")
     } finally {
       await removeTempDir(dir)
     }

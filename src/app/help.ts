@@ -94,8 +94,8 @@ export function getCommandHelp(result: ParserResult): string {
                   ]
                 : path[1] === "install"
                   ? [
-                      "hulla install @hulla/db --cwd apps/server",
-                      "hulla install @hulla/db --yes --db-scripts",
+                      "hulla install @hulla/db @hulla/db-postgres --cwd apps/server",
+                      "hulla install @hulla/api-openapi --dev --scripts",
                     ]
                   : [
                       "hulla ui add button dialog",

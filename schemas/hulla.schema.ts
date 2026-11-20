@@ -9,6 +9,11 @@ export const cliSchema = z.object({
     uninstall: z.string(),
     upgrade: z.string(),
   }),
+  install: z
+    .object({
+      scripts: z.enum(["prompt", "always", "never"]).default("prompt"),
+    })
+    .optional(),
   cache: z.boolean().optional().default(true),
   cacheDir: z.string().optional().default(DEFAULT_CACHE_DIR),
   logs: z.boolean().optional().default(true),
