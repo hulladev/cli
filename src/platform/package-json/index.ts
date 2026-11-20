@@ -10,6 +10,8 @@ export type PackageJson = {
   dependencies?: Record<string, string>
   devDependencies?: Record<string, string>
   peerDependencies?: Record<string, string>
+  peerDependenciesMeta?: Record<string, { optional?: boolean }>
+  bin?: string | Record<string, string>
   packageManager?: string
   workspaces?: string[] | { packages: string[] }
 }
@@ -20,6 +22,28 @@ export async function getPackageJson(
 ): Promise<PackageJson | null> {
   const fullPath = resolveAbsolute(dir, path)
   return readJsonFile<PackageJson>(fullPath)
+}
+
+/** Locate dependencies without executing their entrypoint or requiring a package.json export. */
+export async function findInstalledPackage(root: string, name: string) {
+  let directory = resolve(root)
+  while (true) {
+    const packageDirectory = join(directory, "node_modules", name)
+    const path = join(packageDirectory, "package.json")
+    const manifest = await readJsonFile<PackageJson>(path)
+    if (manifest) {
+      if (manifest.name !== name || typeof manifest.version !== "string") {
+        throw new Error(`Invalid installed package manifest: ${path}`)
+      }
+      return {
+        directory: packageDirectory,
+        manifest: { ...manifest, version: manifest.version },
+      }
+    }
+    const parent = dirname(directory)
+    if (parent === directory) return null
+    directory = parent
+  }
 }
 
 export async function getPackageManagerFromLockfile(

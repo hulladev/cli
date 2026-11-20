@@ -8,7 +8,10 @@ export const checkModules: CommandModule[] = [
     name,
     definition: command({
       name,
-      description: `Check the local @hulla/${name} integration`,
+      description:
+        name === "db"
+          ? "Run the project's database CLI or check the local integration"
+          : `Check the local @hulla/${name} integration`,
       arguments: [checkFlag, ...commonArguments],
     }),
     run: ({ context }: Parameters<CommandModule["run"]>[0]) =>

@@ -1,5 +1,6 @@
 import { integrationChecks } from "@/checks/registry"
 import { runIntegrationChecks } from "@/checks/run"
+import { getDatabaseInvocation, runDatabaseCLI } from "@/modules/db/proxy"
 import { ensureProjectConfig } from "@/modules/init"
 import { getProjectRootFromConfigPath } from "@/modules/ui/config"
 import { readHullaConfig } from "@/platform/config/read-hulla-config"
@@ -106,6 +107,12 @@ export async function runCli({
   let restoreDirectoryRuntime: (() => void) | undefined
 
   try {
+    const database = getDatabaseInvocation(argv.slice(2))
+    if (database) {
+      const cwd = resolve(getCliCwd(), database.cwd ?? ".")
+      return { exitCode: await runDatabaseCLI(cwd, database.argv) }
+    }
+
     console.log("")
 
     const parserResult = cli.parse(argv) as unknown as ParserResult

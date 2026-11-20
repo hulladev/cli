@@ -52,7 +52,7 @@ export function getCommandHelp(result: ParserResult): string {
   const usage = [
     ...path,
     ...(commands.length ? ["<command>"] : []),
-    ...positional.map(positionLabel),
+    ...(path[1] === "db" ? ["[command ...]"] : positional.map(positionLabel)),
     ...(options.length ? ["[options]"] : []),
   ].join(" ")
   const aliases = names(definition.alias)
@@ -80,16 +80,28 @@ export function getCommandHelp(result: ParserResult): string {
             ]
           : path[1] === "doctor"
             ? ["hulla doctor", "hulla doctor --cwd '<app-path>'"]
-            : ["style", "db", "control"].includes(path[1])
+            : path[1] === "db"
               ? [
-                  `hulla ${path[1]} --check`,
-                  `hulla ${path[1]} --check --cwd '<app-path>'`,
+                  "hulla db generate db/server.ts",
+                  "hulla db dev --cwd apps/server",
+                  "hulla db migrate --check",
+                  "hulla db --check",
                 ]
-              : [
-                  "hulla ui add button dialog",
-                  "hulla doctor",
-                  "hulla ui --check",
-                ]
+              : ["style", "control"].includes(path[1])
+                ? [
+                    `hulla ${path[1]} --check`,
+                    `hulla ${path[1]} --check --cwd '<app-path>'`,
+                  ]
+                : path[1] === "install"
+                  ? [
+                      "hulla install @hulla/db @hulla/db-postgres --cwd apps/server",
+                      "hulla install @hulla/api-openapi --dev --scripts",
+                    ]
+                  : [
+                      "hulla ui add button dialog",
+                      "hulla doctor",
+                      "hulla ui --check",
+                    ]
 
   return [
     `Usage: ${usage}`,
