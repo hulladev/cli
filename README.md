@@ -51,9 +51,28 @@ For `@hulla/api` application setup, follow the [API guides](https://github.com/h
 
 Commit project/UI configuration and installed source; exclude `.hulla/.cache`.
 
-## Install the database SDK
+## Install packages
 
-Run `hulla install @hulla/db --cwd apps/server` in the package that owns the database. It adds `@hulla/db` as a runtime dependency and the matching `@hulla/db-cli` as a dev dependency. The CLI detects the workspace package manager or uses your configured `cli.scripts.add` and `cli.scripts.addDev` commands. For an optional `db:generate` and `db:dev` script setup, accept the interactive prompt or pass `--db-scripts`.
+`hulla install` accepts one or more `@hulla/*` packages or `hulla`, with optional versions or tags. It detects the package manager or uses your configured `cli.scripts.add` and `cli.scripts.addDev` commands. Use `--dev` (`-D`) to install tooling as development dependencies.
+
+```sh
+hulla install @hulla/db @hulla/db-postgres --cwd apps/server --scripts
+hulla install @hulla/api-openapi --dev --scripts
+```
+
+Script setup offers missing entries interactively. Set `cli.install.scripts` in `.hulla/hulla.json` to `prompt` (default), `always`, or `never`. Use `--scripts` or `--no-scripts` to override it for one command. In CI, the default `prompt` mode skips scripts. Existing entries are preserved.
+
+| Package                        | Available scripts                                             |
+| ------------------------------ | ------------------------------------------------------------- |
+| `@hulla/db` or `@hulla/db-cli` | `db:generate`, `db:dev`                                       |
+| `@hulla/api-openapi`           | `api:openapi`                                                 |
+| `@hulla/ui`                    | `ui:generate`, `ui:check` for projects that author a registry |
+
+Pass the definition path and `--output` to `api:openapi`. Pass your registry configuration path to the UI scripts. `hulla ui add` installs editable component source into a consuming app.
+
+## Run database tooling
+
+When `@hulla/db` ships the CLI separately, `hulla install @hulla/db` adds the matching `@hulla/db-cli` as a dev dependency. Older releases supply `hulla-db` from `@hulla/db` itself.
 
 `hulla db` runs the database CLI installed in the selected project. Pass it the same arguments as `hulla-db`.
 
