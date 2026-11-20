@@ -82,4 +82,4 @@ hulla db dev db/server.ts --cwd apps/server
 hulla db migrate db/server.ts --check --cwd apps/server
 ```
 
-Use `hulla db --check` to inspect the installed integration. Add `@hulla/db-local-postgres` as a dev dependency if you want the CLI to run a local PostgreSQL server. See the [database development guide](https://github.com/hulladev/db/blob/main/docs/browser-service.md).
+Use `hulla db --check` to inspect the installed integration. Starting with `@hulla/db-cli@0.3.4`, `hulla db dev` downloads and caches PostgreSQL on first use when there is no configured database URL. See the [database development guide](https://github.com/hulladev/db/blob/main/docs/browser-service.md).
