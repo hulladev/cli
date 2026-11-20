@@ -1,36 +1,6 @@
-import { readJsonFile } from "@/platform/fs/bun"
+import { findInstalledPackage } from "@/platform/package-json"
 import { existsSync } from "node:fs"
-import { dirname, join } from "node:path"
 import type { CheckContext, CheckResult } from "./types"
-
-type InstalledPackage = {
-  name: string
-  version: string
-  peerDependencies?: Record<string, string>
-  peerDependenciesMeta?: Record<string, { optional?: boolean }>
-}
-
-// Read manifests without importing package entrypoints or executing project code.
-// Walking node_modules also supports packages that do not export package.json.
-export async function findInstalledPackage(
-  root: string,
-  name: string
-): Promise<InstalledPackage | null> {
-  let directory = root
-  while (true) {
-    const path = join(directory, "node_modules", name, "package.json")
-    const manifest = await readJsonFile<InstalledPackage>(path)
-    if (manifest) {
-      if (manifest.name !== name || typeof manifest.version !== "string") {
-        throw new Error(`Invalid installed package manifest: ${path}`)
-      }
-      return manifest
-    }
-    const parent = dirname(directory)
-    if (parent === directory) return null
-    directory = parent
-  }
-}
 
 export async function checkPackages(
   context: CheckContext,
@@ -48,7 +18,8 @@ export async function checkPackages(
           fix: `Add ${name} to this package's dependencies.`,
         })
       }
-      const installed = await findInstalledPackage(context.root, name)
+      const installed = (await findInstalledPackage(context.root, name))
+        ?.manifest
       if (!installed) {
         results.push({
           id: `package:${name}`,
@@ -89,7 +60,8 @@ export async function checkPackages(
       for (const [peer, range] of Object.entries(
         installed.peerDependencies ?? {}
       )) {
-        const resolved = await findInstalledPackage(context.root, peer)
+        const resolved = (await findInstalledPackage(context.root, peer))
+          ?.manifest
         const optional = installed.peerDependenciesMeta?.[peer]?.optional
         if (!resolved && optional) continue
         const matches = resolved && matchesVersion(resolved.version, range)
