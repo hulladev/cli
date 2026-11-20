@@ -50,3 +50,17 @@ Use `hulla ui init --help` or `hulla ui add --help` for individual options.
 For `@hulla/api` application setup, follow the [API guides](https://github.com/hulladev/api/tree/master/docs); `hulla api --check` checks an installed integration.
 
 Commit project/UI configuration and installed source; exclude `.hulla/.cache`.
+
+## Install the database SDK
+
+Run `hulla install @hulla/db --cwd apps/server` in the package that owns the database. It adds `@hulla/db` as a runtime dependency and the matching `@hulla/db-cli` as a dev dependency. The CLI detects the workspace package manager or uses your configured `cli.scripts.add` and `cli.scripts.addDev` commands. For an optional `db:generate` and `db:dev` script setup, accept the interactive prompt or pass `--db-scripts`.
+
+`hulla db` runs the database CLI installed in the selected project. Pass it the same arguments as `hulla-db`.
+
+```sh
+hulla db generate db/server.ts --cwd apps/server
+hulla db dev db/server.ts --cwd apps/server
+hulla db migrate db/server.ts --check --cwd apps/server
+```
+
+Use `hulla db --check` to inspect the installed integration. Add `@hulla/db-local-postgres` as a dev dependency if you want the CLI to run a local PostgreSQL server. See the [database development guide](https://github.com/hulladev/db/blob/main/docs/browser-service.md).
