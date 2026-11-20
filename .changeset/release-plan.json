@@ -1,11 +1,11 @@
 {
   "repository": "hulladev/cli",
-  "version": "0.5.0",
-  "tag": "v0.5.0",
+  "version": "0.5.1",
+  "tag": "v0.5.1",
   "packages": [
     {
       "name": "hulla",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "directory": "."
     }
   ]
